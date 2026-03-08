@@ -2,15 +2,20 @@ import 'package:flutter/material.dart';
 import '../models/pantry_item.dart';
 import '../models/pantry_types.dart';
 import '../services/pantry_service.dart';
+import '../services/shared_pantry_service.dart';
 
 class PantryProvider extends ChangeNotifier {
   final PantryService _service = PantryService();
+  final SharedPantryService _sharedService = SharedPantryService();
 
   List<PantryItem> _allItems = [];
   List<PantryItem> _filteredItems = [];
   List<ItemType> _types = [];
   List<ItemLocation> _locations = [];
   bool _isLoading = false;
+
+  /// L'ID efectiu del propietari del rebost que s'utilitza.
+  String? _effectiveOwnerId;
 
   // Filtres
   String _searchQuery = '';
@@ -27,6 +32,7 @@ class PantryProvider extends ChangeNotifier {
   String? get filterTypeId => _filterTypeId;
   String? get filterLocationId => _filterLocationId;
   bool get showOnlyActive => _showOnlyActive;
+  String? get effectiveOwnerId => _effectiveOwnerId;
 
   int get activeCount => _allItems.where((i) => i.isActive).length;
   int get expiredCount =>
@@ -34,13 +40,17 @@ class PantryProvider extends ChangeNotifier {
   int get expiringSoonCount =>
       _allItems.where((i) => i.isActive && i.isExpiringSoon).length;
 
+  /// Carrega totes les dades, utilitzant l'ID efectiu del propietari.
   Future<void> loadAll(String userId) async {
     _isLoading = true;
     notifyListeners();
 
-    _allItems = await _service.getItems(userId);
-    _types = await _service.getTypes(userId);
-    _locations = await _service.getLocations(userId);
+    // Determinar el propietari efectiu del rebost
+    _effectiveOwnerId = await _sharedService.getEffectivePantryOwnerId(userId);
+
+    _allItems = await _service.getItems(_effectiveOwnerId!);
+    _types = await _service.getTypes(_effectiveOwnerId!);
+    _locations = await _service.getLocations(_effectiveOwnerId!);
     _applyFilters();
 
     _isLoading = false;
@@ -119,15 +129,18 @@ class PantryProvider extends ChangeNotifier {
 
   // ============ ITEMS ============
 
+  /// Utilitza l'ID efectiu per totes les operacions.
+  String _ownerId(String userId) => _effectiveOwnerId ?? userId;
+
   Future<void> addItem(String userId, PantryItem item) async {
-    await _service.addItem(userId, item);
+    await _service.addItem(_ownerId(userId), item);
     _allItems.add(item);
     _applyFilters();
     notifyListeners();
   }
 
   Future<void> updateItem(String userId, PantryItem item) async {
-    await _service.updateItem(userId, item);
+    await _service.updateItem(_ownerId(userId), item);
     final index = _allItems.indexWhere((i) => i.id == item.id);
     if (index != -1) {
       _allItems[index] = item;
@@ -137,14 +150,14 @@ class PantryProvider extends ChangeNotifier {
   }
 
   Future<void> deleteItem(String userId, String itemId) async {
-    await _service.deleteItem(userId, itemId);
+    await _service.deleteItem(_ownerId(userId), itemId);
     _allItems.removeWhere((i) => i.id == itemId);
     _applyFilters();
     notifyListeners();
   }
 
   Future<void> openItem(String userId, String itemId) async {
-    await _service.openItem(userId, itemId);
+    await _service.openItem(_ownerId(userId), itemId);
     final index = _allItems.indexWhere((i) => i.id == itemId);
     if (index != -1) {
       _allItems[index].status = PantryItemStatus.encetat;
@@ -155,7 +168,7 @@ class PantryProvider extends ChangeNotifier {
   }
 
   Future<void> consumeItem(String userId, String itemId) async {
-    await _service.consumeItem(userId, itemId);
+    await _service.consumeItem(_ownerId(userId), itemId);
     final index = _allItems.indexWhere((i) => i.id == itemId);
     if (index != -1) {
       _allItems[index].status = PantryItemStatus.consumit;
@@ -165,7 +178,7 @@ class PantryProvider extends ChangeNotifier {
   }
 
   Future<void> discardItem(String userId, String itemId) async {
-    await _service.discardItem(userId, itemId);
+    await _service.discardItem(_ownerId(userId), itemId);
     final index = _allItems.indexWhere((i) => i.id == itemId);
     if (index != -1) {
       _allItems[index].status = PantryItemStatus.llencat;
@@ -179,20 +192,20 @@ class PantryProvider extends ChangeNotifier {
   // ============ TIPUS ============
 
   Future<void> addType(String userId, ItemType type) async {
-    await _service.addType(userId, type);
+    await _service.addType(_ownerId(userId), type);
     _types.add(type);
     notifyListeners();
   }
 
   Future<void> updateType(String userId, ItemType type) async {
-    await _service.updateType(userId, type);
+    await _service.updateType(_ownerId(userId), type);
     final index = _types.indexWhere((t) => t.id == type.id);
     if (index != -1) _types[index] = type;
     notifyListeners();
   }
 
   Future<void> deleteType(String userId, String typeId) async {
-    await _service.deleteType(userId, typeId);
+    await _service.deleteType(_ownerId(userId), typeId);
     _types.removeWhere((t) => t.id == typeId);
     notifyListeners();
   }
@@ -200,20 +213,20 @@ class PantryProvider extends ChangeNotifier {
   // ============ UBICACIONS ============
 
   Future<void> addLocation(String userId, ItemLocation location) async {
-    await _service.addLocation(userId, location);
+    await _service.addLocation(_ownerId(userId), location);
     _locations.add(location);
     notifyListeners();
   }
 
   Future<void> updateLocation(String userId, ItemLocation location) async {
-    await _service.updateLocation(userId, location);
+    await _service.updateLocation(_ownerId(userId), location);
     final index = _locations.indexWhere((l) => l.id == location.id);
     if (index != -1) _locations[index] = location;
     notifyListeners();
   }
 
   Future<void> deleteLocation(String userId, String locationId) async {
-    await _service.deleteLocation(userId, locationId);
+    await _service.deleteLocation(_ownerId(userId), locationId);
     _locations.removeWhere((l) => l.id == locationId);
     notifyListeners();
   }

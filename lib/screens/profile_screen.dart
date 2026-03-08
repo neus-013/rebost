@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/shared_pantry_provider.dart';
 import '../theme/app_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -12,20 +13,24 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _nameController;
+  late TextEditingController _usernameController;
   late TextEditingController _emailController;
   bool _isEditing = false;
+  String? _formError;
 
   @override
   void initState() {
     super.initState();
     final user = context.read<AuthProvider>().currentUser!;
     _nameController = TextEditingController(text: user.name);
+    _usernameController = TextEditingController(text: user.username);
     _emailController = TextEditingController(text: user.email ?? '');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -33,6 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final sharedPantryProvider = context.watch<SharedPantryProvider>();
     final user = authProvider.currentUser!;
 
     return Scaffold(
@@ -71,6 +77,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              const SizedBox(height: 4),
+              Text(
+                '@${user.username}',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.primaryColor,
+                ),
+              ),
               if (user.email != null) ...[
                 const SizedBox(height: 4),
                 Text(
@@ -99,6 +112,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
+                controller: _usernameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nom d\'usuari',
+                  prefixIcon: Icon(Icons.alternate_email),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(
                   labelText: 'Correu electrònic',
@@ -106,6 +127,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
+              if (_formError != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  _formError!,
+                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                ),
+              ],
               const SizedBox(height: 24),
               Row(
                 children: [
@@ -113,8 +141,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: OutlinedButton(
                       onPressed: () {
                         _nameController.text = user.name;
+                        _usernameController.text = user.username;
                         _emailController.text = user.email ?? '';
-                        setState(() => _isEditing = false);
+                        setState(() {
+                          _isEditing = false;
+                          _formError = null;
+                        });
                       },
                       child: const Text('Cancel·lar'),
                     ),
@@ -123,20 +155,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () async {
-                        if (_nameController.text.trim().isNotEmpty) {
+                        setState(() => _formError = null);
+                        if (_nameController.text.trim().isNotEmpty &&
+                            _usernameController.text.trim().isNotEmpty) {
                           user.name = _nameController.text.trim();
+                          user.username = _usernameController.text.trim();
                           user.email = _emailController.text.trim().isEmpty
                               ? null
                               : _emailController.text.trim();
-                          await authProvider.updateUser(user);
-                          setState(() => _isEditing = false);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Perfil actualitzat'),
-                                backgroundColor: AppTheme.primaryColor,
-                              ),
-                            );
+                          final error = await authProvider.updateUser(user);
+                          if (error != null && mounted) {
+                            setState(() => _formError = error);
+                          } else {
+                            setState(() => _isEditing = false);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Perfil actualitzat'),
+                                  backgroundColor: AppTheme.primaryColor,
+                                ),
+                              );
+                            }
                           }
                         }
                       },
@@ -197,6 +236,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Divider(),
             const SizedBox(height: 16),
 
+            // Rebost compartit
+            if (sharedPantryProvider.isInSharedPantry) ...[
+              _SettingsItem(
+                icon: Icons.group,
+                title: 'Rebost compartit',
+                subtitle: 'Estàs en un rebost compartit amb ${sharedPantryProvider.members.length} membres',
+                onTap: () => _showSharedPantryInfo(context, sharedPantryProvider, authProvider),
+              ),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showLeavePantryDialog(context, sharedPantryProvider),
+                  icon: const Icon(Icons.exit_to_app, color: Colors.orange),
+                  label: const Text(
+                    'Sortir del rebost compartit',
+                    style: TextStyle(color: Colors.orange),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.orange),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 16),
+            ],
+
             // Canviar d'usuari
             SizedBox(
               width: double.infinity,
@@ -248,6 +314,91 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showSharedPantryInfo(BuildContext context, SharedPantryProvider sharedProvider, AuthProvider authProvider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rebost compartit'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Membres (${sharedProvider.members.length}):'),
+            const SizedBox(height: 8),
+            ...sharedProvider.members.map((memberId) {
+              final memberUser = authProvider.getUserById(memberId);
+              final isOwner = memberId == sharedProvider.effectiveOwnerId;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      isOwner ? Icons.star : Icons.person,
+                      size: 16,
+                      color: isOwner ? Colors.amber : Colors.grey,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      memberUser?.name ?? memberId,
+                      style: TextStyle(
+                        fontWeight: isOwner ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    if (isOwner)
+                      const Text(' (propietari)', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Tancar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLeavePantryDialog(BuildContext context, SharedPantryProvider sharedProvider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sortir del rebost compartit'),
+        content: const Text(
+          'Si surts del rebost compartit, les teves dades del rebost compartit '
+          'es perdran i començaràs amb un rebost buit. '
+          'El propietari conservarà totes les dades.\n\n'
+          'Estàs segur/a?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel·lar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final userId = context.read<AuthProvider>().currentUser!.id;
+              await sharedProvider.leavePantry(userId);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Has sortit del rebost compartit'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
+            },
+            child: const Text('Sortir', style: TextStyle(color: Colors.orange)),
+          ),
+        ],
       ),
     );
   }

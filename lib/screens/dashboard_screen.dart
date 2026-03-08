@@ -3,11 +3,14 @@ import 'package:provider/provider.dart';
 import '../models/notification_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
+import '../providers/pantry_provider.dart';
+import '../providers/shared_pantry_provider.dart';
 import '../theme/app_theme.dart';
 import 'profile_screen.dart';
 import 'pantry_screen.dart';
 import 'recipes_screen.dart';
 import 'shopping_list_screen.dart';
+import 'invite_user_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -24,6 +27,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadNotifications();
+      _loadSharedPantry();
     });
   }
 
@@ -32,6 +36,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final notifProvider = context.read<NotificationProvider>();
     if (authProvider.currentUser != null) {
       await notifProvider.loadNotifications(authProvider.currentUser!.id);
+    }
+  }
+
+  Future<void> _loadSharedPantry() async {
+    final authProvider = context.read<AuthProvider>();
+    final sharedProvider = context.read<SharedPantryProvider>();
+    if (authProvider.currentUser != null) {
+      await sharedProvider.loadAll(authProvider.currentUser!.id);
     }
   }
 
@@ -55,7 +67,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ? const Text('Rebost')
             : Text(_getTitle(_currentIndex)),
         actions: [
-          if (_currentIndex == 0)
+          if (_currentIndex == 0) ...[
+            // Botó d'invitació
+            IconButton(
+              icon: const Icon(Icons.person_add),
+              tooltip: 'Convidar al rebost',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const InviteUserScreen()),
+              ),
+            ),
+            // Invitacions pendents
+            Consumer<SharedPantryProvider>(
+              builder: (context, sharedProvider, _) {
+                final pending = sharedProvider.pendingInvitations;
+                return Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.mail_outline),
+                      tooltip: 'Invitacions pendents',
+                      onPressed: () => _showPendingInvitations(context),
+                    ),
+                    if (pending.isNotEmpty)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.orange,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '${pending.length}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
             Consumer<NotificationProvider>(
               builder: (context, notifProvider, _) {
                 return Stack(
@@ -88,6 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
               },
             ),
+          ],
           // Icona de l'usuari
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -143,6 +200,136 @@ class _DashboardScreenState extends State<DashboardScreen> {
       default:
         return 'Rebost';
     }
+  }
+
+  void _showPendingInvitations(BuildContext context) {
+    final authProvider = context.read<AuthProvider>();
+    final sharedProvider = context.read<SharedPantryProvider>();
+    final pantryProvider = context.read<PantryProvider>();
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final pending = sharedProvider.pendingInvitations;
+        if (pending.isEmpty) {
+          return const SizedBox(
+            height: 200,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.mail_outline, size: 48, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('No tens invitacions pendents',
+                      style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          );
+        }
+        return ListView.builder(
+          shrinkWrap: true,
+          padding: const EdgeInsets.all(16),
+          itemCount: pending.length + 1,
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text('Invitacions pendents',
+                    style: Theme.of(context).textTheme.titleLarge),
+              );
+            }
+            final inv = pending[index - 1];
+            final fromUser = authProvider.getUserById(inv.fromUserId);
+            return Card(
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppTheme.primaryColor,
+                  child: Text(
+                    fromUser?.name[0].toUpperCase() ?? '?',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+                title: Text(fromUser?.name ?? 'Usuari desconegut'),
+                subtitle: Text('Vol compartir el seu rebost amb tu'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.red),
+                      tooltip: 'Rebutjar',
+                      onPressed: () async {
+                        final userId = authProvider.currentUser!.id;
+                        await sharedProvider.rejectInvitation(inv.id, userId);
+                        if (context.mounted) Navigator.pop(ctx);
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.check, color: AppTheme.primaryColor),
+                      tooltip: 'Acceptar',
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        _confirmAcceptInvitation(context, inv, sharedProvider, authProvider, pantryProvider);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmAcceptInvitation(
+    BuildContext context,
+    dynamic invitation,
+    SharedPantryProvider sharedProvider,
+    AuthProvider authProvider,
+    PantryProvider pantryProvider,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Acceptar invitació'),
+        content: const Text(
+          '⚠️ Si acceptes, les teves dades actuals del rebost es perdran '
+          'i passaràs a compartir el rebost de l\'altra persona.\n\n'
+          'Totes les modificacions es sincronitzaran entre tots els membres.\n\n'
+          'Vols continuar?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel·lar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final userId = authProvider.currentUser!.id;
+              await sharedProvider.acceptInvitation(invitation.id, userId);
+              // Reload pantry with new effective owner
+              if (authProvider.currentUser != null) {
+                await pantryProvider.loadAll(authProvider.currentUser!.id);
+              }
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Invitació acceptada! Ara comparteixes el rebost.'),
+                    backgroundColor: AppTheme.primaryColor,
+                  ),
+                );
+              }
+            },
+            child: const Text('Acceptar'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showNotifications(BuildContext context) {

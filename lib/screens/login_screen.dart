@@ -12,13 +12,16 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isCreatingAccount = false;
+  String? _formError;
 
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -90,9 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           title: Text(user.name),
-                          subtitle: user.email != null
-                              ? Text(user.email!)
-                              : null,
+                          subtitle: Text('@${user.username}'),
                           trailing: const Icon(
                             Icons.arrow_forward_ios,
                             size: 16,
@@ -149,6 +150,24 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
+                          controller: _usernameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nom d\'usuari',
+                            hintText: 'Ex: maria_garcia',
+                            prefixIcon: Icon(Icons.alternate_email),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'El nom d\'usuari és obligatori';
+                            }
+                            if (value.trim().contains(' ')) {
+                              return 'El nom d\'usuari no pot contenir espais';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
                           controller: _emailController,
                           decoration: const InputDecoration(
                             labelText: 'Correu electrònic (opcional)',
@@ -157,18 +176,30 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           keyboardType: TextInputType.emailAddress,
                         ),
+                        if (_formError != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            _formError!,
+                            style: const TextStyle(color: Colors.red, fontSize: 13),
+                          ),
+                        ],
                         const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () async {
+                              setState(() => _formError = null);
                               if (_formKey.currentState!.validate()) {
-                                await authProvider.createUser(
+                                final error = await authProvider.createUser(
                                   _nameController.text.trim(),
+                                  username: _usernameController.text.trim(),
                                   email: _emailController.text.trim().isEmpty
                                       ? null
                                       : _emailController.text.trim(),
                                 );
+                                if (error != null && mounted) {
+                                  setState(() => _formError = error);
+                                }
                               }
                             },
                             child: const Padding(

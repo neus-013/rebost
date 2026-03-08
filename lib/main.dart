@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/pantry_provider.dart';
+import 'providers/shared_pantry_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'theme/app_theme.dart';
@@ -22,6 +23,7 @@ class RebostApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()..init()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => PantryProvider()),
+        ChangeNotifierProvider(create: (_) => SharedPantryProvider()),
       ],
       child: MaterialApp(
         title: 'Rebost',
