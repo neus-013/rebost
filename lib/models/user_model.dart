@@ -16,20 +16,20 @@ class UserModel {
   }) : createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'email': email,
-        'avatarUrl': avatarUrl,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'email': email,
+    'avatarUrl': avatarUrl,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        email: json['email'] as String?,
-        avatarUrl: json['avatarUrl'] as String?,
-        createdAt: DateTime.parse(json['createdAt'] as String),
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    email: json['email'] as String?,
+    avatarUrl: json['avatarUrl'] as String?,
+    createdAt: DateTime.parse(json['createdAt'] as String),
+  );
 
   String toJsonString() => jsonEncode(toJson());
 

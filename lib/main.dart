@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/pantry_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'theme/app_theme.dart';
@@ -20,6 +21,7 @@ class RebostApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()..init()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => PantryProvider()),
       ],
       child: MaterialApp(
         title: 'Rebost',
@@ -44,15 +46,9 @@ class AuthGate extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.kitchen,
-                size: 64,
-                color: AppTheme.primaryColor,
-              ),
+              Icon(Icons.kitchen, size: 64, color: AppTheme.primaryColor),
               SizedBox(height: 16),
-              CircularProgressIndicator(
-                color: AppTheme.primaryColor,
-              ),
+              CircularProgressIndicator(color: AppTheme.primaryColor),
               SizedBox(height: 16),
               Text('Carregant...'),
             ],

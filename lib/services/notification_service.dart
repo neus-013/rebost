@@ -12,14 +12,20 @@ class NotificationService {
     final prefs = await SharedPreferences.getInstance();
     final notifJson = prefs.getStringList(_notificationsKey(userId)) ?? [];
     final notifications = notifJson
-        .map((json) =>
-            AppNotification.fromJson(jsonDecode(json) as Map<String, dynamic>))
+        .map(
+          (json) => AppNotification.fromJson(
+            jsonDecode(json) as Map<String, dynamic>,
+          ),
+        )
         .toList();
     notifications.sort((a, b) => b.date.compareTo(a.date));
     return notifications;
   }
 
-  Future<void> addNotification(String userId, AppNotification notification) async {
+  Future<void> addNotification(
+    String userId,
+    AppNotification notification,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final notifications = await getNotifications(userId);
     notifications.add(notification);
@@ -46,7 +52,8 @@ class NotificationService {
     final notification = AppNotification(
       id: _uuid.v4(),
       title: 'Benvingut/da, $userName!',
-      message: 'Benvingut/da a Rebost! Comença a organitzar el teu rebost, '
+      message:
+          'Benvingut/da a Rebost! Comença a organitzar el teu rebost, '
           'crear receptes i gestionar la llista de la compra.',
       date: DateTime.now(),
       type: NotificationType.success,

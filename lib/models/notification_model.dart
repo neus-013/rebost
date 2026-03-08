@@ -16,13 +16,13 @@ class AppNotification {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'message': message,
-        'date': date.toIso8601String(),
-        'type': type.name,
-        'isRead': isRead,
-      };
+    'id': id,
+    'title': title,
+    'message': message,
+    'date': date.toIso8601String(),
+    'type': type.name,
+    'isRead': isRead,
+  };
 
   factory AppNotification.fromJson(Map<String, dynamic> json) =>
       AppNotification(
@@ -35,9 +35,4 @@ class AppNotification {
       );
 }
 
-enum NotificationType {
-  info,
-  warning,
-  success,
-  reminder,
-}
+enum NotificationType { info, warning, success, reminder }

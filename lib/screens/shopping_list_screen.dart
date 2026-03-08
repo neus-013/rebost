@@ -27,18 +27,18 @@ class ShoppingListScreen extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               'Llista de la compra',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Text(
               'Aquí podràs gestionar la teva llista de la compra.\n'
               'Pròximament...',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
             ),
           ],
         ),

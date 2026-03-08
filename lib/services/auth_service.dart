@@ -27,11 +27,7 @@ class AuthService {
 
   Future<UserModel> createUser(String name, {String? email}) async {
     final prefs = await SharedPreferences.getInstance();
-    final user = UserModel(
-      id: _uuid.v4(),
-      name: name,
-      email: email,
-    );
+    final user = UserModel(id: _uuid.v4(), name: name, email: email);
     final users = await getUsers();
     users.add(user);
     await prefs.setStringList(

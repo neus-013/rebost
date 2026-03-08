@@ -41,7 +41,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final user = authProvider.currentUser!;
 
     final screens = [
-      _DashboardHome(onNavigate: (index) => setState(() => _currentIndex = index)),
+      _DashboardHome(
+        onNavigate: (index) => setState(() => _currentIndex = index),
+      ),
       const PantryScreen(),
       const RecipesScreen(),
       const ShoppingListScreen(),
@@ -115,14 +117,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Inici',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.kitchen),
-            label: 'Rebost',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Inici'),
+          BottomNavigationBarItem(icon: Icon(Icons.kitchen), label: 'Rebost'),
           BottomNavigationBarItem(
             icon: Icon(Icons.menu_book),
             label: 'Receptes',
@@ -179,7 +175,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     TextButton(
                       onPressed: () {
                         notifProvider.markAllAsRead(
-                            authProvider.currentUser!.id);
+                          authProvider.currentUser!.id,
+                        );
                       },
                       child: const Text('Marcar totes com a llegides'),
                     ),
@@ -193,8 +190,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.notifications_off,
-                              size: 48, color: Colors.grey),
+                          Icon(
+                            Icons.notifications_off,
+                            size: 48,
+                            color: Colors.grey,
+                          ),
                           SizedBox(height: 16),
                           Text(
                             'No tens notificacions',
@@ -253,16 +253,16 @@ class _DashboardHome extends StatelessWidget {
             // Salutació
             Text(
               'Hola, ${user.name}! 👋',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
               _getGreeting(),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 24),
 
@@ -274,13 +274,15 @@ class _DashboardHome extends StatelessWidget {
                   Text(
                     'Notificacions recents',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   if (notifProvider.unreadCount > 0)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.accentColor,
                         borderRadius: BorderRadius.circular(12),
@@ -296,7 +298,9 @@ class _DashboardHome extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              ...notifProvider.notifications.take(3).map(
+              ...notifProvider.notifications
+                  .take(3)
+                  .map(
                     (notif) => Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: _NotificationCard(notification: notif),
@@ -308,9 +312,9 @@ class _DashboardHome extends StatelessWidget {
             // Accesos ràpids
             Text(
               'Accés ràpid',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Row(
@@ -392,9 +396,9 @@ class _QuickAccessCard extends StatelessWidget {
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -412,17 +416,15 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: notification.isRead ? null : AppTheme.primaryColor.withValues(alpha: 0.05),
+      color: notification.isRead
+          ? null
+          : AppTheme.primaryColor.withValues(alpha: 0.05),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              _getIcon(),
-              color: _getColor(),
-              size: 20,
-            ),
+            Icon(_getIcon(), color: _getColor(), size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -431,16 +433,17 @@ class _NotificationCard extends StatelessWidget {
                   Text(
                     notification.title,
                     style: TextStyle(
-                      fontWeight:
-                          notification.isRead ? FontWeight.normal : FontWeight.bold,
+                      fontWeight: notification.isRead
+                          ? FontWeight.normal
+                          : FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     notification.message,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -484,10 +487,7 @@ class _NotificationTile extends StatelessWidget {
   final AppNotification notification;
   final VoidCallback onTap;
 
-  const _NotificationTile({
-    required this.notification,
-    required this.onTap,
-  });
+  const _NotificationTile({required this.notification, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -499,8 +499,7 @@ class _NotificationTile extends StatelessWidget {
       title: Text(
         notification.title,
         style: TextStyle(
-          fontWeight:
-              notification.isRead ? FontWeight.normal : FontWeight.bold,
+          fontWeight: notification.isRead ? FontWeight.normal : FontWeight.bold,
         ),
       ),
       subtitle: Text(

@@ -53,16 +53,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 Text(
                   'Rebost',
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryColor,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Gestiona el teu rebost de manera fàcil',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.grey[600],
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
@@ -93,7 +93,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           subtitle: user.email != null
                               ? Text(user.email!)
                               : null,
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                          ),
                           onTap: () => authProvider.loginUser(user.id),
                         ),
                       ),

@@ -68,24 +68,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text(
                 user.name,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               if (user.email != null) ...[
                 const SizedBox(height: 4),
                 Text(
                   user.email!,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.grey[600],
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
                 ),
               ],
               const SizedBox(height: 8),
               Text(
                 'Membre des del ${_formatDate(user.createdAt)}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
               ),
             ],
             if (_isEditing) ...[
@@ -156,9 +156,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: 'Aparença',
               subtitle: 'Personalitza l\'aspecte de l\'app',
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Pròximament...')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Pròximament...')));
               },
             ),
             _SettingsItem(
@@ -166,9 +166,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: 'Notificacions',
               subtitle: 'Configura les notificacions',
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Pròximament...')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Pròximament...')));
               },
             ),
             _SettingsItem(
@@ -254,8 +254,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String _formatDate(DateTime date) {
     final months = [
-      'gener', 'febrer', 'març', 'abril', 'maig', 'juny',
-      'juliol', 'agost', 'setembre', 'octubre', 'novembre', 'desembre'
+      'gener',
+      'febrer',
+      'març',
+      'abril',
+      'maig',
+      'juny',
+      'juliol',
+      'agost',
+      'setembre',
+      'octubre',
+      'novembre',
+      'desembre',
     ];
     return '${date.day} de ${months[date.month - 1]} de ${date.year}';
   }
@@ -282,10 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Navigator.of(context).popUntil((route) => route.isFirst);
               }
             },
-            child: const Text(
-              'Eliminar',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
