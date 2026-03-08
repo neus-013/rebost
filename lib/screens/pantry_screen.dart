@@ -83,8 +83,11 @@ class _PantryScreenState extends State<PantryScreen> {
                             title: 'Consumir producte',
                             actionLabel: 'Consumir',
                             actionColor: AppTheme.primaryColor,
-                            onConfirm: (qty) =>
-                                pantryProvider.consumeItem(userId, item.id, qty: qty),
+                            onConfirm: (qty) => pantryProvider.consumeItem(
+                              userId,
+                              item.id,
+                              qty: qty,
+                            ),
                           ),
                           onDiscard: () => _showQuantityDialog(
                             context,
@@ -92,8 +95,11 @@ class _PantryScreenState extends State<PantryScreen> {
                             title: 'Llençar producte',
                             actionLabel: 'Llençar',
                             actionColor: Colors.red,
-                            onConfirm: (qty) =>
-                                pantryProvider.discardItem(userId, item.id, qty: qty),
+                            onConfirm: (qty) => pantryProvider.discardItem(
+                              userId,
+                              item.id,
+                              qty: qty,
+                            ),
                           ),
                           onTap: () => _editItem(context, item),
                         );
@@ -409,8 +415,10 @@ class _PantryScreenState extends State<PantryScreen> {
             children: [
               Text('${item.name} — tens ${item.quantity} ${item.unit}'),
               const SizedBox(height: 16),
-              Text('Quantes unitats?',
-                  style: Theme.of(context).textTheme.bodyLarge),
+              Text(
+                'Quantes unitats?',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -444,7 +452,8 @@ class _PantryScreenState extends State<PantryScreen> {
               ),
               const SizedBox(height: 8),
               TextButton(
-                onPressed: () => setDialogState(() => selectedQty = item.quantity),
+                onPressed: () =>
+                    setDialogState(() => selectedQty = item.quantity),
                 child: const Text('Totes'),
               ),
             ],

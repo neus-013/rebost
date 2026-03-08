@@ -45,12 +45,14 @@ class AuthProvider extends ChangeNotifier {
   Future<String?> createUser(
     String name, {
     required String username,
+    required String password,
     String? email,
   }) async {
     try {
       final user = await _authService.createUser(
         name,
         username: username,
+        password: password,
         email: email,
       );
       await _notificationService.addWelcomeNotification(user.id, user.name);
@@ -63,10 +65,34 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loginUser(String userId) async {
-    await _authService.loginUser(userId);
-    _currentUser = _users.firstWhere((u) => u.id == userId);
+  Future<String?> loginUser(String userId, {String? password}) async {
+    try {
+      await _authService.loginUser(userId, password: password);
+      _currentUser = _users.firstWhere((u) => u.id == userId);
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    }
+  }
+
+  /// Canvia la contrasenya de l'usuari actual
+  Future<void> changePassword(String newPassword) async {
+    if (_currentUser == null) return;
+    await _authService.changePassword(_currentUser!.id, newPassword);
+    _users = await _authService.getUsers();
+    _currentUser = _users.firstWhere((u) => u.id == _currentUser!.id);
     notifyListeners();
+  }
+
+  /// Verifica la contrasenya actual de l'usuari
+  bool verifyCurrentPassword(String password) {
+    if (_currentUser == null || !_currentUser!.hasPassword) return true;
+    return _authService.verifyPassword(
+      password,
+      _currentUser!.passwordHash!,
+      _currentUser!.salt!,
+    );
   }
 
   Future<void> logout() async {

@@ -191,6 +191,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             // Opcions
             _SettingsItem(
+              icon: Icons.lock,
+              title: 'Canviar contrasenya',
+              subtitle: 'Actualitza la teva contrasenya',
+              onTap: () => _showChangePasswordDialog(context, authProvider),
+            ),
+            _SettingsItem(
               icon: Icons.color_lens,
               title: 'Aparença',
               subtitle: 'Personalitza l\'aspecte de l\'app',
@@ -437,6 +443,141 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'desembre',
     ];
     return '${date.day} de ${months[date.month - 1]} de ${date.year}';
+  }
+
+  void _showChangePasswordDialog(
+    BuildContext context,
+    AuthProvider authProvider,
+  ) {
+    final currentPwdCtrl = TextEditingController();
+    final newPwdCtrl = TextEditingController();
+    final confirmPwdCtrl = TextEditingController();
+    bool obscureCurrent = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+    String? error;
+    final hasPassword = authProvider.currentUser?.hasPassword ?? false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Canviar contrasenya'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (hasPassword) ...[
+                  TextField(
+                    controller: currentPwdCtrl,
+                    obscureText: obscureCurrent,
+                    decoration: InputDecoration(
+                      labelText: 'Contrasenya actual',
+                      prefixIcon: const Icon(Icons.lock_open),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscureCurrent
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () => setDialogState(
+                          () => obscureCurrent = !obscureCurrent,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                TextField(
+                  controller: newPwdCtrl,
+                  obscureText: obscureNew,
+                  decoration: InputDecoration(
+                    labelText: 'Nova contrasenya',
+                    hintText: 'Mínim 6 caràcters',
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureNew ? Icons.visibility_off : Icons.visibility,
+                      ),
+                      onPressed: () =>
+                          setDialogState(() => obscureNew = !obscureNew),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: confirmPwdCtrl,
+                  obscureText: obscureConfirm,
+                  decoration: InputDecoration(
+                    labelText: 'Confirma la nova contrasenya',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureConfirm
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () => setDialogState(
+                        () => obscureConfirm = !obscureConfirm,
+                      ),
+                    ),
+                  ),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    error!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel·lar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Validar contrasenya actual
+                if (hasPassword &&
+                    !authProvider.verifyCurrentPassword(currentPwdCtrl.text)) {
+                  setDialogState(
+                    () => error = 'La contrasenya actual no és correcta',
+                  );
+                  return;
+                }
+                // Validar nova contrasenya
+                if (newPwdCtrl.text.length < 6) {
+                  setDialogState(
+                    () => error = 'La nova contrasenya ha de tenir mínim 6 caràcters',
+                  );
+                  return;
+                }
+                if (newPwdCtrl.text != confirmPwdCtrl.text) {
+                  setDialogState(
+                    () => error = 'Les contrasenyes no coincideixen',
+                  );
+                  return;
+                }
+                await authProvider.changePassword(newPwdCtrl.text);
+                if (ctx.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Contrasenya actualitzada correctament'),
+                      backgroundColor: AppTheme.primaryColor,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Desar'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showDeleteDialog(BuildContext context, AuthProvider authProvider) {

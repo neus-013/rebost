@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -14,8 +15,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isCreatingAccount = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   String? _formError;
 
   @override
@@ -23,6 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
     _nameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -98,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             Icons.arrow_forward_ios,
                             size: 16,
                           ),
-                          onTap: () => authProvider.loginUser(user.id),
+                          onTap: () => _showLoginPasswordDialog(context, user, authProvider),
                         ),
                       ),
                     ),
@@ -176,6 +183,60 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           keyboardType: TextInputType.emailAddress,
                         ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'Contrasenya',
+                            hintText: 'Mínim 6 caràcters',
+                            prefixIcon: const Icon(Icons.lock),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword,
+                              ),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'La contrasenya és obligatòria';
+                            }
+                            if (value.length < 6) {
+                              return 'Mínim 6 caràcters';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _confirmPasswordController,
+                          obscureText: _obscureConfirm,
+                          decoration: InputDecoration(
+                            labelText: 'Confirma la contrasenya',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirm
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                              onPressed: () => setState(
+                                () => _obscureConfirm = !_obscureConfirm,
+                              ),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value != _passwordController.text) {
+                              return 'Les contrasenyes no coincideixen';
+                            }
+                            return null;
+                          },
+                        ),
                         if (_formError != null) ...[
                           const SizedBox(height: 12),
                           Text(
@@ -196,6 +257,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 final error = await authProvider.createUser(
                                   _nameController.text.trim(),
                                   username: _usernameController.text.trim(),
+                                  password: _passwordController.text,
                                   email: _emailController.text.trim().isEmpty
                                       ? null
                                       : _emailController.text.trim(),
@@ -221,6 +283,86 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showLoginPasswordDialog(
+    BuildContext context,
+    UserModel user,
+    AuthProvider authProvider,
+  ) {
+    // Si l'usuari no té contrasenya (creat abans d'afegir contrasenyes), entra directament
+    if (!user.hasPassword) {
+      authProvider.loginUser(user.id);
+      return;
+    }
+
+    final passwordCtrl = TextEditingController();
+    bool obscure = true;
+    String? error;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text('Hola, ${user.name}!'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Introdueix la teva contrasenya per entrar.'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordCtrl,
+                obscureText: obscure,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Contrasenya',
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      obscure ? Icons.visibility_off : Icons.visibility,
+                    ),
+                    onPressed: () =>
+                        setDialogState(() => obscure = !obscure),
+                  ),
+                  errorText: error,
+                ),
+                onSubmitted: (_) async {
+                  final result = await authProvider.loginUser(
+                    user.id,
+                    password: passwordCtrl.text,
+                  );
+                  if (result != null) {
+                    setDialogState(() => error = result);
+                  } else {
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel·lar'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final result = await authProvider.loginUser(
+                  user.id,
+                  password: passwordCtrl.text,
+                );
+                if (result != null) {
+                  setDialogState(() => error = result);
+                } else {
+                  if (ctx.mounted) Navigator.pop(ctx);
+                }
+              },
+              child: const Text('Entrar'),
+            ),
+          ],
         ),
       ),
     );

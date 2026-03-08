@@ -6,6 +6,8 @@ class UserModel {
   String username;
   String? email;
   String? avatarUrl;
+  String? passwordHash;
+  String? salt;
   DateTime createdAt;
 
   UserModel({
@@ -14,8 +16,12 @@ class UserModel {
     required this.username,
     this.email,
     this.avatarUrl,
+    this.passwordHash,
+    this.salt,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
+
+  bool get hasPassword => passwordHash != null && salt != null;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -23,6 +29,8 @@ class UserModel {
     'username': username,
     'email': email,
     'avatarUrl': avatarUrl,
+    'passwordHash': passwordHash,
+    'salt': salt,
     'createdAt': createdAt.toIso8601String(),
   };
 
@@ -32,6 +40,8 @@ class UserModel {
     username: json['username'] as String? ?? json['name'] as String,
     email: json['email'] as String?,
     avatarUrl: json['avatarUrl'] as String?,
+    passwordHash: json['passwordHash'] as String?,
+    salt: json['salt'] as String?,
     createdAt: DateTime.parse(json['createdAt'] as String),
   );
 

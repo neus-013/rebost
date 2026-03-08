@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../models/user_model.dart';
@@ -6,6 +9,31 @@ class AuthService {
   static const String _usersKey = 'rebost_users';
   static const String _currentUserKey = 'rebost_current_user';
   final Uuid _uuid = const Uuid();
+
+  // ── Hashing ──────────────────────────────────────────
+
+  /// Genera un salt aleatori de 32 bytes codificat en base64
+  String _generateSalt() {
+    final random = Random.secure();
+    final saltBytes = List<int>.generate(32, (_) => random.nextInt(256));
+    return base64Encode(saltBytes);
+  }
+
+  /// Retorna el hash SHA-256 de la contrasenya + salt
+  String _hashPassword(String password, String salt) {
+    final bytes = utf8.encode('$salt:$password');
+    // Fem múltiples iteracions per ser més segurs
+    var digest = sha256.convert(bytes);
+    for (var i = 0; i < 9999; i++) {
+      digest = sha256.convert(utf8.encode('$salt:${digest.toString()}'));
+    }
+    return digest.toString();
+  }
+
+  /// Verifica que la contrasenya coincideix amb el hash guardat
+  bool verifyPassword(String password, String storedHash, String salt) {
+    return _hashPassword(password, salt) == storedHash;
+  }
 
   Future<List<UserModel>> getUsers() async {
     final prefs = await SharedPreferences.getInstance();
@@ -64,6 +92,7 @@ class AuthService {
   Future<UserModel> createUser(
     String name, {
     required String username,
+    required String password,
     String? email,
   }) async {
     // Validar unicitat
@@ -74,12 +103,17 @@ class AuthService {
       throw Exception('El correu electrònic "$email" ja està en ús');
     }
 
+    final salt = _generateSalt();
+    final passwordHash = _hashPassword(password, salt);
+
     final prefs = await SharedPreferences.getInstance();
     final user = UserModel(
       id: _uuid.v4(),
       name: name,
       username: username,
       email: email,
+      passwordHash: passwordHash,
+      salt: salt,
     );
     final users = await getUsers();
     users.add(user);
@@ -91,7 +125,20 @@ class AuthService {
     return user;
   }
 
-  Future<void> loginUser(String userId) async {
+  Future<void> loginUser(String userId, {String? password}) async {
+    final users = await getUsers();
+    final user = users.firstWhere((u) => u.id == userId);
+
+    // Si l'usuari té contrasenya, cal verificar-la
+    if (user.hasPassword) {
+      if (password == null || password.isEmpty) {
+        throw Exception('Cal introduir la contrasenya');
+      }
+      if (!verifyPassword(password, user.passwordHash!, user.salt!)) {
+        throw Exception('Contrasenya incorrecta');
+      }
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_currentUserKey, userId);
   }
@@ -117,6 +164,23 @@ class AuthService {
     final index = users.indexWhere((u) => u.id == user.id);
     if (index != -1) {
       users[index] = user;
+      await prefs.setStringList(
+        _usersKey,
+        users.map((u) => u.toJsonString()).toList(),
+      );
+    }
+  }
+
+  /// Canvia la contrasenya d'un usuari
+  Future<void> changePassword(String userId, String newPassword) async {
+    final prefs = await SharedPreferences.getInstance();
+    final users = await getUsers();
+    final index = users.indexWhere((u) => u.id == userId);
+    if (index != -1) {
+      final salt = _generateSalt();
+      final hash = _hashPassword(newPassword, salt);
+      users[index].passwordHash = hash;
+      users[index].salt = salt;
       await prefs.setStringList(
         _usersKey,
         users.map((u) => u.toJsonString()).toList(),

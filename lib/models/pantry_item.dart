@@ -53,8 +53,7 @@ class PantryItem {
   bool get isActive =>
       status == PantryItemStatus.tancat || status == PantryItemStatus.encetat;
 
-  String get quantityDisplay =>
-      quantity == 1 ? '1 unitat' : '$quantity $unit';
+  String get quantityDisplay => quantity == 1 ? '1 unitat' : '$quantity $unit';
 
   Map<String, dynamic> toJson() => {
     'id': id,
