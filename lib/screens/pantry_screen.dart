@@ -77,13 +77,23 @@ class _PantryScreenState extends State<PantryScreen> {
                           ),
                           onOpen: () =>
                               pantryProvider.openItem(userId, item.id),
-                          onConsume: () =>
-                              pantryProvider.consumeItem(userId, item.id),
-                          onDiscard: () => _confirmDiscard(
+                          onConsume: () => _showQuantityDialog(
                             context,
-                            pantryProvider,
-                            userId,
-                            item,
+                            item: item,
+                            title: 'Consumir producte',
+                            actionLabel: 'Consumir',
+                            actionColor: AppTheme.primaryColor,
+                            onConfirm: (qty) =>
+                                pantryProvider.consumeItem(userId, item.id, qty: qty),
+                          ),
+                          onDiscard: () => _showQuantityDialog(
+                            context,
+                            item: item,
+                            title: 'Llençar producte',
+                            actionLabel: 'Llençar',
+                            actionColor: Colors.red,
+                            onConfirm: (qty) =>
+                                pantryProvider.discardItem(userId, item.id, qty: qty),
                           ),
                           onTap: () => _editItem(context, item),
                         );
@@ -374,30 +384,85 @@ class _PantryScreenState extends State<PantryScreen> {
     if (result == true && mounted) _loadData();
   }
 
-  void _confirmDiscard(
-    BuildContext context,
-    PantryProvider provider,
-    String userId,
-    PantryItem item,
-  ) {
+  void _showQuantityDialog(
+    BuildContext context, {
+    required PantryItem item,
+    required String title,
+    required String actionLabel,
+    required Color actionColor,
+    required Future<void> Function(int qty) onConfirm,
+  }) {
+    if (item.quantity <= 1) {
+      // Si només hi ha 1, no cal preguntar
+      onConfirm(1);
+      return;
+    }
+
+    int selectedQty = item.quantity;
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Llençar producte'),
-        content: Text('Vols marcar "${item.name}" com a llençat?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel·lar'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('${item.name} — tens ${item.quantity} ${item.unit}'),
+              const SizedBox(height: 16),
+              Text('Quantes unitats?',
+                  style: Theme.of(context).textTheme.bodyLarge),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: selectedQty > 1
+                        ? () => setDialogState(() => selectedQty--)
+                        : null,
+                    iconSize: 32,
+                  ),
+                  SizedBox(
+                    width: 60,
+                    child: Text(
+                      '$selectedQty',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: selectedQty < item.quantity
+                        ? () => setDialogState(() => selectedQty++)
+                        : null,
+                    iconSize: 32,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => setDialogState(() => selectedQty = item.quantity),
+                child: const Text('Totes'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              provider.discardItem(userId, item.id);
-              Navigator.pop(ctx);
-            },
-            child: const Text('Llençar', style: TextStyle(color: Colors.red)),
-          ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel·lar'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                onConfirm(selectedQty);
+              },
+              child: Text(actionLabel, style: TextStyle(color: actionColor)),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -480,7 +545,7 @@ class _PantryItemTile extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              item.quantity,
+                              item.quantityDisplay,
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 13,

@@ -157,32 +157,90 @@ class PantryProvider extends ChangeNotifier {
   }
 
   Future<void> openItem(String userId, String itemId) async {
-    await _service.openItem(_ownerId(userId), itemId);
+    final ownerId = _ownerId(userId);
     final index = _allItems.indexWhere((i) => i.id == itemId);
-    if (index != -1) {
-      _allItems[index].status = PantryItemStatus.encetat;
-      _allItems[index].openedDate = DateTime.now();
+    if (index == -1) return;
+
+    final item = _allItems[index];
+
+    if (item.quantity > 1) {
+      // Reduir la quantitat de l'original en 1
+      item.quantity -= 1;
+      item.updatedAt = DateTime.now();
+      await _service.updateItem(ownerId, item);
+
+      // Crear un duplicat encetat amb quantitat 1
+      final openedCopy = PantryItem(
+        name: item.name,
+        quantity: 1,
+        unit: item.unit,
+        typeId: item.typeId,
+        locationId: item.locationId,
+        expiryDate: item.expiryDate,
+        purchaseDate: item.purchaseDate,
+        openedDate: DateTime.now(),
+        status: PantryItemStatus.encetat,
+        parentId: item.id,
+      );
+      await _service.addItem(ownerId, openedCopy);
+      _allItems.add(openedCopy);
+    } else {
+      // Quantitat 1: simplement encetar
+      await _service.openItem(ownerId, itemId);
+      item.status = PantryItemStatus.encetat;
+      item.openedDate = DateTime.now();
     }
+
     _applyFilters();
     notifyListeners();
   }
 
-  Future<void> consumeItem(String userId, String itemId) async {
-    await _service.consumeItem(_ownerId(userId), itemId);
+  /// Consumir una quantitat específica d'un item.
+  Future<void> consumeItem(String userId, String itemId, {int qty = 0}) async {
+    final ownerId = _ownerId(userId);
     final index = _allItems.indexWhere((i) => i.id == itemId);
-    if (index != -1) {
-      _allItems[index].status = PantryItemStatus.consumit;
+    if (index == -1) return;
+
+    final item = _allItems[index];
+    final consumeQty = qty > 0 ? qty : item.quantity;
+
+    if (consumeQty >= item.quantity) {
+      // Consumir tot
+      item.status = PantryItemStatus.consumit;
+      item.updatedAt = DateTime.now();
+      await _service.updateItem(ownerId, item);
+    } else {
+      // Consumir parcialment: reduir quantitat
+      item.quantity -= consumeQty;
+      item.updatedAt = DateTime.now();
+      await _service.updateItem(ownerId, item);
     }
+
     _applyFilters();
     notifyListeners();
   }
 
-  Future<void> discardItem(String userId, String itemId) async {
-    await _service.discardItem(_ownerId(userId), itemId);
+  /// Llençar una quantitat específica d'un item.
+  Future<void> discardItem(String userId, String itemId, {int qty = 0}) async {
+    final ownerId = _ownerId(userId);
     final index = _allItems.indexWhere((i) => i.id == itemId);
-    if (index != -1) {
-      _allItems[index].status = PantryItemStatus.llencat;
+    if (index == -1) return;
+
+    final item = _allItems[index];
+    final discardQty = qty > 0 ? qty : item.quantity;
+
+    if (discardQty >= item.quantity) {
+      // Llençar tot
+      item.status = PantryItemStatus.llencat;
+      item.updatedAt = DateTime.now();
+      await _service.updateItem(ownerId, item);
+    } else {
+      // Llençar parcialment: reduir quantitat
+      item.quantity -= discardQty;
+      item.updatedAt = DateTime.now();
+      await _service.updateItem(ownerId, item);
     }
+
     _applyFilters();
     notifyListeners();
   }

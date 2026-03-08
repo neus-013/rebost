@@ -28,18 +28,22 @@ class AuthService {
   /// Comprova si un username ja existeix (retorna true si està ocupat)
   Future<bool> isUsernameTaken(String username, {String? excludeUserId}) async {
     final users = await getUsers();
-    return users.any((u) =>
-        u.username.toLowerCase() == username.toLowerCase() &&
-        u.id != excludeUserId);
+    return users.any(
+      (u) =>
+          u.username.toLowerCase() == username.toLowerCase() &&
+          u.id != excludeUserId,
+    );
   }
 
   /// Comprova si un email ja existeix (retorna true si està ocupat)
   Future<bool> isEmailTaken(String email, {String? excludeUserId}) async {
     final users = await getUsers();
-    return users.any((u) =>
-        u.email != null &&
-        u.email!.toLowerCase() == email.toLowerCase() &&
-        u.id != excludeUserId);
+    return users.any(
+      (u) =>
+          u.email != null &&
+          u.email!.toLowerCase() == email.toLowerCase() &&
+          u.id != excludeUserId,
+    );
   }
 
   /// Busca un usuari per username o email
@@ -100,14 +104,12 @@ class AuthService {
   Future<void> updateUser(UserModel user) async {
     // Validar unicitat del username
     if (await isUsernameTaken(user.username, excludeUserId: user.id)) {
-      throw Exception(
-          'El nom d\'usuari "${user.username}" ja està en ús');
+      throw Exception('El nom d\'usuari "${user.username}" ja està en ús');
     }
     if (user.email != null &&
         user.email!.isNotEmpty &&
         await isEmailTaken(user.email!, excludeUserId: user.id)) {
-      throw Exception(
-          'El correu electrònic "${user.email}" ja està en ús');
+      throw Exception('El correu electrònic "${user.email}" ja està en ús');
     }
 
     final prefs = await SharedPreferences.getInstance();

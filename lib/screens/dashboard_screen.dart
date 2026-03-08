@@ -223,8 +223,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Icon(Icons.mail_outline, size: 48, color: Colors.grey),
                   SizedBox(height: 16),
-                  Text('No tens invitacions pendents',
-                      style: TextStyle(color: Colors.grey)),
+                  Text(
+                    'No tens invitacions pendents',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             ),
@@ -238,8 +240,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (index == 0) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: Text('Invitacions pendents',
-                    style: Theme.of(context).textTheme.titleLarge),
+                child: Text(
+                  'Invitacions pendents',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
               );
             }
             final inv = pending[index - 1];
@@ -268,11 +272,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.check, color: AppTheme.primaryColor),
+                      icon: const Icon(
+                        Icons.check,
+                        color: AppTheme.primaryColor,
+                      ),
                       tooltip: 'Acceptar',
                       onPressed: () async {
                         Navigator.pop(ctx);
-                        _confirmAcceptInvitation(context, inv, sharedProvider, authProvider, pantryProvider);
+                        _confirmAcceptInvitation(
+                          context,
+                          inv,
+                          sharedProvider,
+                          authProvider,
+                          pantryProvider,
+                        );
                       },
                     ),
                   ],
@@ -319,7 +332,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Invitació acceptada! Ara comparteixes el rebost.'),
+                    content: Text(
+                      'Invitació acceptada! Ara comparteixes el rebost.',
+                    ),
                     backgroundColor: AppTheme.primaryColor,
                   ),
                 );

@@ -80,9 +80,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 4),
               Text(
                 '@${user.username}',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppTheme.primaryColor,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: AppTheme.primaryColor),
               ),
               if (user.email != null) ...[
                 const SizedBox(height: 4),
@@ -241,13 +241,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _SettingsItem(
                 icon: Icons.group,
                 title: 'Rebost compartit',
-                subtitle: 'Estàs en un rebost compartit amb ${sharedPantryProvider.members.length} membres',
-                onTap: () => _showSharedPantryInfo(context, sharedPantryProvider, authProvider),
+                subtitle:
+                    'Estàs en un rebost compartit amb ${sharedPantryProvider.members.length} membres',
+                onTap: () => _showSharedPantryInfo(
+                  context,
+                  sharedPantryProvider,
+                  authProvider,
+                ),
               ),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () => _showLeavePantryDialog(context, sharedPantryProvider),
+                  onPressed: () =>
+                      _showLeavePantryDialog(context, sharedPantryProvider),
                   icon: const Icon(Icons.exit_to_app, color: Colors.orange),
                   label: const Text(
                     'Sortir del rebost compartit',
@@ -318,7 +324,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showSharedPantryInfo(BuildContext context, SharedPantryProvider sharedProvider, AuthProvider authProvider) {
+  void _showSharedPantryInfo(
+    BuildContext context,
+    SharedPantryProvider sharedProvider,
+    AuthProvider authProvider,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -345,11 +355,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Text(
                       memberUser?.name ?? memberId,
                       style: TextStyle(
-                        fontWeight: isOwner ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isOwner
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     if (isOwner)
-                      const Text(' (propietari)', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      const Text(
+                        ' (propietari)',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
                   ],
                 ),
               );
@@ -366,7 +381,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showLeavePantryDialog(BuildContext context, SharedPantryProvider sharedProvider) {
+  void _showLeavePantryDialog(
+    BuildContext context,
+    SharedPantryProvider sharedProvider,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(

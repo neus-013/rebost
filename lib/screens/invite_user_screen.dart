@@ -91,9 +91,7 @@ class _InviteUserScreenState extends State<InviteUserScreen> {
     final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Convidar al rebost'),
-      ),
+      appBar: AppBar(title: const Text('Convidar al rebost')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -214,9 +212,7 @@ class _InviteUserScreenState extends State<InviteUserScreen> {
                                 )
                               : const Icon(Icons.send),
                           label: Text(
-                            _isSending
-                                ? 'Enviant...'
-                                : 'Enviar invitació',
+                            _isSending ? 'Enviant...' : 'Enviar invitació',
                           ),
                         ),
                       ),
@@ -232,10 +228,9 @@ class _InviteUserScreenState extends State<InviteUserScreen> {
             if (sharedProvider.sentInvitations.isNotEmpty) ...[
               Text(
                 'Invitacions enviades',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               ...sharedProvider.sentInvitations.map((inv) {
@@ -279,10 +274,9 @@ class _InviteUserScreenState extends State<InviteUserScreen> {
               const SizedBox(height: 24),
               Text(
                 'Membres del rebost',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               ...sharedProvider.members.map((memberId) {
@@ -301,11 +295,16 @@ class _InviteUserScreenState extends State<InviteUserScreen> {
                     subtitle: Text('@${memberUser?.username ?? '?'}'),
                     trailing: isOwner
                         ? const Chip(
-                            label: Text('Propietari',
-                                style: TextStyle(fontSize: 11)),
+                            label: Text(
+                              'Propietari',
+                              style: TextStyle(fontSize: 11),
+                            ),
                             backgroundColor: Color(0xFFFFF8E1),
-                            avatar: Icon(Icons.star,
-                                size: 14, color: Colors.amber),
+                            avatar: Icon(
+                              Icons.star,
+                              size: 14,
+                              color: Colors.amber,
+                            ),
                           )
                         : null,
                   ),

@@ -60,10 +60,7 @@ class SharedPantryProvider extends ChangeNotifier {
         return 'Aquest usuari ja és al teu rebost';
       }
 
-      final invitation = Invitation(
-        fromUserId: fromUserId,
-        toUserId: toUserId,
-      );
+      final invitation = Invitation(fromUserId: fromUserId, toUserId: toUserId);
       await _service.createInvitation(invitation);
       _sentInvitations = await _service.getSentInvitations(fromUserId);
       notifyListeners();
@@ -74,8 +71,7 @@ class SharedPantryProvider extends ChangeNotifier {
   }
 
   /// Accepta una invitació. Retorna true si l'usuari tenia dades i s'han esborrat.
-  Future<bool> acceptInvitation(
-      String invitationId, String userId) async {
+  Future<bool> acceptInvitation(String invitationId, String userId) async {
     // Comprovar si l'usuari tenia dades pròpies
     final hadData = await _service.userHasPantryData(userId);
 

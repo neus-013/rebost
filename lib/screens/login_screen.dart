@@ -180,7 +180,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 12),
                           Text(
                             _formError!,
-                            style: const TextStyle(color: Colors.red, fontSize: 13),
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                         const SizedBox(height: 24),

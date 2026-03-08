@@ -17,7 +17,7 @@ class PantryItemFormScreen extends StatefulWidget {
 class _PantryItemFormScreenState extends State<PantryItemFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _quantityController = TextEditingController();
+  int _quantity = 1;
 
   String? _selectedTypeId;
   String? _selectedLocationId;
@@ -34,7 +34,7 @@ class _PantryItemFormScreenState extends State<PantryItemFormScreen> {
     if (_isEditing) {
       final item = widget.item!;
       _nameController.text = item.name;
-      _quantityController.text = item.quantity;
+      _quantity = item.quantity;
       _selectedTypeId = item.typeId;
       _selectedLocationId = item.locationId;
       _purchaseDate = item.purchaseDate;
@@ -47,7 +47,6 @@ class _PantryItemFormScreenState extends State<PantryItemFormScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _quantityController.dispose();
     super.dispose();
   }
 
@@ -92,20 +91,64 @@ class _PantryItemFormScreenState extends State<PantryItemFormScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Quantitat
-            TextFormField(
-              controller: _quantityController,
-              decoration: const InputDecoration(
-                labelText: 'Quantitat *',
-                hintText: 'ex: 1 litre, 500g, 3 unitats',
-                prefixIcon: Icon(Icons.numbers),
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'La quantitat és obligatòria';
-                }
-                return null;
-              },
+            // Quantitat (unitats)
+            Row(
+              children: [
+                const Icon(Icons.numbers, color: Colors.grey),
+                const SizedBox(width: 12),
+                Text(
+                  'Quantitat:',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const Spacer(),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove),
+                        onPressed: _quantity > 1
+                            ? () => setState(() => _quantity--)
+                            : null,
+                        iconSize: 20,
+                        constraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 40,
+                        child: Text(
+                          '$_quantity',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add),
+                        onPressed: () => setState(() => _quantity++),
+                        iconSize: 20,
+                        constraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _quantity == 1 ? 'unitat' : 'unitats',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -262,10 +305,6 @@ class _PantryItemFormScreenState extends State<PantryItemFormScreen> {
       initialDate: initial ?? now,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
-      locale: const Locale('ca'),
-      helpText: 'Selecciona una data',
-      cancelText: 'Cancel·lar',
-      confirmText: 'Acceptar',
     );
     if (picked != null) onPicked(picked);
   }
@@ -279,7 +318,7 @@ class _PantryItemFormScreenState extends State<PantryItemFormScreen> {
     if (_isEditing) {
       final updatedItem = widget.item!.copyWith(
         name: _nameController.text.trim(),
-        quantity: _quantityController.text.trim(),
+        quantity: _quantity,
         typeId: _selectedTypeId!,
         locationId: _selectedLocationId!,
         purchaseDate: _purchaseDate,
@@ -291,7 +330,7 @@ class _PantryItemFormScreenState extends State<PantryItemFormScreen> {
     } else {
       final newItem = PantryItem(
         name: _nameController.text.trim(),
-        quantity: _quantityController.text.trim(),
+        quantity: _quantity,
         typeId: _selectedTypeId!,
         locationId: _selectedLocationId!,
         purchaseDate: _purchaseDate,

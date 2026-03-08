@@ -85,8 +85,9 @@ class SharedPantryService {
   Future<List<Invitation>> getPendingInvitationsFor(String userId) async {
     final all = await getAllInvitations();
     return all
-        .where((i) =>
-            i.toUserId == userId && i.status == InvitationStatus.pending)
+        .where(
+          (i) => i.toUserId == userId && i.status == InvitationStatus.pending,
+        )
         .toList();
   }
 
@@ -102,10 +103,12 @@ class SharedPantryService {
     final all = await getAllInvitations();
 
     // Comprovar que no hi ha ja una invitació pendent entre aquests usuaris
-    final existing = all.where((i) =>
-        i.fromUserId == invitation.fromUserId &&
-        i.toUserId == invitation.toUserId &&
-        i.status == InvitationStatus.pending);
+    final existing = all.where(
+      (i) =>
+          i.fromUserId == invitation.fromUserId &&
+          i.toUserId == invitation.toUserId &&
+          i.status == InvitationStatus.pending,
+    );
     if (existing.isNotEmpty) {
       throw Exception('Ja hi ha una invitació pendent per a aquest usuari');
     }
@@ -161,8 +164,9 @@ class SharedPantryService {
   /// Esborra les dades del rebost d'un usuari.
   Future<void> _clearUserPantryData(String userId) async {
     final prefs = await SharedPreferences.getInstance();
-    final keysToRemove = prefs.getKeys().where((k) =>
-        k.startsWith('user_${userId}_pantry_'));
+    final keysToRemove = prefs.getKeys().where(
+      (k) => k.startsWith('user_${userId}_pantry_'),
+    );
     for (final key in keysToRemove) {
       await prefs.remove(key);
     }
@@ -188,7 +192,9 @@ class SharedPantryService {
   }
 
   Future<void> _saveInvitations(
-      SharedPreferences prefs, List<Invitation> invitations) async {
+    SharedPreferences prefs,
+    List<Invitation> invitations,
+  ) async {
     await prefs.setStringList(
       _invitationsKey,
       invitations.map((i) => i.toJsonString()).toList(),

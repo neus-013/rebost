@@ -11,7 +11,8 @@ enum PantryItemStatus {
 class PantryItem {
   final String id;
   String name;
-  String quantity;
+  int quantity;
+  String unit;
   String typeId;
   String locationId;
   DateTime? expiryDate;
@@ -20,11 +21,13 @@ class PantryItem {
   PantryItemStatus status;
   DateTime createdAt;
   DateTime updatedAt;
+  String? parentId; // ID del producte pare (si és un duplicat encetat)
 
   PantryItem({
     String? id,
     required this.name,
-    required this.quantity,
+    this.quantity = 1,
+    this.unit = 'unitats',
     required this.typeId,
     required this.locationId,
     this.expiryDate,
@@ -33,6 +36,7 @@ class PantryItem {
     this.status = PantryItemStatus.tancat,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.parentId,
   }) : id = id ?? const Uuid().v4(),
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -49,10 +53,14 @@ class PantryItem {
   bool get isActive =>
       status == PantryItemStatus.tancat || status == PantryItemStatus.encetat;
 
+  String get quantityDisplay =>
+      quantity == 1 ? '1 unitat' : '$quantity $unit';
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     'quantity': quantity,
+    'unit': unit,
     'typeId': typeId,
     'locationId': locationId,
     'expiryDate': expiryDate?.toIso8601String(),
@@ -61,12 +69,16 @@ class PantryItem {
     'status': status.name,
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
+    'parentId': parentId,
   };
 
   factory PantryItem.fromJson(Map<String, dynamic> json) => PantryItem(
     id: json['id'] as String,
     name: json['name'] as String,
-    quantity: json['quantity'] as String,
+    quantity: json['quantity'] is int
+        ? json['quantity'] as int
+        : int.tryParse(json['quantity'].toString()) ?? 1,
+    unit: json['unit'] as String? ?? 'unitats',
     typeId: json['typeId'] as String,
     locationId: json['locationId'] as String,
     expiryDate: json['expiryDate'] != null
@@ -81,23 +93,27 @@ class PantryItem {
     status: PantryItemStatus.values.byName(json['status'] as String),
     createdAt: DateTime.parse(json['createdAt'] as String),
     updatedAt: DateTime.parse(json['updatedAt'] as String),
+    parentId: json['parentId'] as String?,
   );
 
   PantryItem copyWith({
     String? id,
     String? name,
-    String? quantity,
+    int? quantity,
+    String? unit,
     String? typeId,
     String? locationId,
     DateTime? expiryDate,
     DateTime? purchaseDate,
     DateTime? openedDate,
     PantryItemStatus? status,
+    String? parentId,
   }) {
     return PantryItem(
       id: id ?? this.id,
       name: name ?? this.name,
       quantity: quantity ?? this.quantity,
+      unit: unit ?? this.unit,
       typeId: typeId ?? this.typeId,
       locationId: locationId ?? this.locationId,
       expiryDate: expiryDate ?? this.expiryDate,
@@ -106,6 +122,7 @@ class PantryItem {
       status: status ?? this.status,
       createdAt: createdAt,
       updatedAt: DateTime.now(),
+      parentId: parentId ?? this.parentId,
     );
   }
 
