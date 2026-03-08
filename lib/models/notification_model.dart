@@ -4,6 +4,7 @@ class AppNotification {
   final String message;
   final DateTime date;
   final NotificationType type;
+  final String? relatedItemId;
   bool isRead;
 
   AppNotification({
@@ -12,6 +13,7 @@ class AppNotification {
     required this.message,
     required this.date,
     this.type = NotificationType.info,
+    this.relatedItemId,
     this.isRead = false,
   });
 
@@ -21,6 +23,7 @@ class AppNotification {
     'message': message,
     'date': date.toIso8601String(),
     'type': type.name,
+    'relatedItemId': relatedItemId,
     'isRead': isRead,
   };
 
@@ -31,8 +34,9 @@ class AppNotification {
         message: json['message'] as String,
         date: DateTime.parse(json['date'] as String),
         type: NotificationType.values.byName(json['type'] as String),
-        isRead: json['isRead'] as bool,
+        relatedItemId: json['relatedItemId'] as String?,
+        isRead: json['isRead'] as bool? ?? false,
       );
 }
 
-enum NotificationType { info, warning, success, reminder }
+enum NotificationType { info, warning, success, reminder, expiry }

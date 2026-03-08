@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/notification_model.dart';
+import '../models/pantry_item.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../providers/pantry_provider.dart';
@@ -34,8 +35,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadNotifications() async {
     final authProvider = context.read<AuthProvider>();
     final notifProvider = context.read<NotificationProvider>();
+    final pantryProvider = context.read<PantryProvider>();
     if (authProvider.currentUser != null) {
-      await notifProvider.loadNotifications(authProvider.currentUser!.id);
+      final userId = authProvider.currentUser!.id;
+      await pantryProvider.loadAll(userId);
+      await notifProvider.checkExpiryNotifications(
+        userId,
+        pantryProvider.allItems,
+      );
+      await notifProvider.loadNotifications(userId);
     }
   }
 
@@ -441,10 +449,26 @@ class _DashboardHome extends StatelessWidget {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.currentUser!;
     final notifProvider = context.watch<NotificationProvider>();
+    final pantryProvider = context.watch<PantryProvider>();
+
+    // Productes actius amb data de caducitat dins dels propers 5 dies (o ja caducats)
+    final expiringItems = pantryProvider.allItems
+        .where((item) {
+          if (!item.isActive || item.expiryDate == null) return false;
+          final days = item.daysUntilExpiry!;
+          return days <= 5; // incloem caducats (negatiu) i fins a 5 dies
+        })
+        .toList()
+      ..sort((a, b) => a.daysUntilExpiry!.compareTo(b.daysUntilExpiry!));
 
     return RefreshIndicator(
       onRefresh: () async {
+        await pantryProvider.loadAll(user.id);
         await notifProvider.loadNotifications(user.id);
+        await notifProvider.checkExpiryNotifications(
+          user.id,
+          pantryProvider.allItems,
+        );
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -511,6 +535,24 @@ class _DashboardHome extends StatelessWidget {
               const SizedBox(height: 16),
             ],
 
+            // Productes a punt de caducar
+            if (expiringItems.isNotEmpty) ...[
+              Text(
+                'Productes a punt de caducar',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...expiringItems.map(
+                (item) => _ExpiryItemCard(
+                  item: item,
+                  onDiscard: () => _discardItem(context, item, pantryProvider, user.id),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // Accesos ràpids
             Text(
               'Accés ràpid',
@@ -560,6 +602,122 @@ class _DashboardHome extends StatelessWidget {
     if (hour < 12) return 'Bon dia! Què necessites avui?';
     if (hour < 20) return 'Bona tarda! Què necessites avui?';
     return 'Bona nit! Què necessites avui?';
+  }
+
+  void _discardItem(
+    BuildContext context,
+    PantryItem item,
+    PantryProvider pantryProvider,
+    String userId,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Llençar producte'),
+        content: Text(
+          'Vols llençar "${item.name}"?\n'
+          'Aquest producte ${item.isExpired ? "ja ha caducat" : "està a punt de caducar"}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel·lar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await pantryProvider.discardItem(userId, item.id, qty: item.quantity);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${item.name} llençat'),
+                    backgroundColor: Colors.orange,
+                  ),
+                );
+              }
+            },
+            child: const Text('Llençar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpiryItemCard extends StatelessWidget {
+  final PantryItem item;
+  final VoidCallback onDiscard;
+
+  const _ExpiryItemCard({required this.item, required this.onDiscard});
+
+  @override
+  Widget build(BuildContext context) {
+    final days = item.daysUntilExpiry ?? 0;
+    final color = _getExpiryColor(days);
+    final daysText = _getDaysText(days);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.4),
+                blurRadius: 4,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+        ),
+        title: Text(
+          item.name,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          daysText,
+          style: TextStyle(
+            color: color,
+            fontWeight: FontWeight.w500,
+            fontSize: 13,
+          ),
+        ),
+        trailing: days < 0
+            ? TextButton.icon(
+                onPressed: onDiscard,
+                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                label: const Text(
+                  'Llençar',
+                  style: TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              )
+            : Text(
+                item.quantityDisplay,
+                style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              ),
+      ),
+    );
+  }
+
+  Color _getExpiryColor(int days) {
+    if (days <= 1) return Colors.red;
+    if (days <= 3) return Colors.orange;
+    return Colors.green;
+  }
+
+  String _getDaysText(int days) {
+    if (days < 0) {
+      final absDays = days.abs();
+      return 'Caducat fa ${absDays == 1 ? "1 dia" : "$absDays dies"}';
+    }
+    if (days == 0) return 'Caduca avui!';
+    if (days == 1) return 'Caduca demà';
+    return 'Caduca en $days dies';
   }
 }
 
@@ -668,6 +826,8 @@ class _NotificationCard extends StatelessWidget {
         return Icons.check_circle_outline;
       case NotificationType.reminder:
         return Icons.alarm;
+      case NotificationType.expiry:
+        return Icons.event_busy;
     }
   }
 
@@ -681,6 +841,8 @@ class _NotificationCard extends StatelessWidget {
         return AppTheme.primaryColor;
       case NotificationType.reminder:
         return Colors.purple;
+      case NotificationType.expiry:
+        return Colors.red;
     }
   }
 }
@@ -733,6 +895,8 @@ class _NotificationTile extends StatelessWidget {
         return Icons.check_circle_outline;
       case NotificationType.reminder:
         return Icons.alarm;
+      case NotificationType.expiry:
+        return Icons.event_busy;
     }
   }
 
@@ -746,6 +910,8 @@ class _NotificationTile extends StatelessWidget {
         return AppTheme.primaryColor;
       case NotificationType.reminder:
         return Colors.purple;
+      case NotificationType.expiry:
+        return Colors.red;
     }
   }
 }

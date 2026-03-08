@@ -44,10 +44,19 @@ class PantryItem {
   bool get isExpired =>
       expiryDate != null && expiryDate!.isBefore(DateTime.now());
 
+  /// Dies fins a la caducitat (negatiu si ja ha caducat)
+  int? get daysUntilExpiry {
+    if (expiryDate == null) return null;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final expiry = DateTime(expiryDate!.year, expiryDate!.month, expiryDate!.day);
+    return expiry.difference(today).inDays;
+  }
+
   bool get isExpiringSoon {
     if (expiryDate == null) return false;
-    final daysLeft = expiryDate!.difference(DateTime.now()).inDays;
-    return daysLeft >= 0 && daysLeft <= 3;
+    final days = daysUntilExpiry!;
+    return days >= 0 && days <= 5;
   }
 
   bool get isActive =>

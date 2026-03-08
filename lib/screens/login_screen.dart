@@ -105,7 +105,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             Icons.arrow_forward_ios,
                             size: 16,
                           ),
-                          onTap: () => _showLoginPasswordDialog(context, user, authProvider),
+                          onTap: () => _showLoginPasswordDialog(
+                            context,
+                            user,
+                            authProvider,
+                          ),
                         ),
                       ),
                     ),
@@ -324,8 +328,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     icon: Icon(
                       obscure ? Icons.visibility_off : Icons.visibility,
                     ),
-                    onPressed: () =>
-                        setDialogState(() => obscure = !obscure),
+                    onPressed: () => setDialogState(() => obscure = !obscure),
                   ),
                   errorText: error,
                 ),

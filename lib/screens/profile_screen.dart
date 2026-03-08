@@ -551,7 +551,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Validar nova contrasenya
                 if (newPwdCtrl.text.length < 6) {
                   setDialogState(
-                    () => error = 'La nova contrasenya ha de tenir mínim 6 caràcters',
+                    () => error =
+                        'La nova contrasenya ha de tenir mínim 6 caràcters',
                   );
                   return;
                 }

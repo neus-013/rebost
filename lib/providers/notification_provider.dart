@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/notification_model.dart';
+import '../models/pantry_item.dart';
 import '../services/notification_service.dart';
 
 class NotificationProvider extends ChangeNotifier {
@@ -27,5 +28,16 @@ class NotificationProvider extends ChangeNotifier {
       await _service.markAsRead(userId, n.id);
     }
     await loadNotifications(userId);
+  }
+
+  /// Comprova les dates de caducitat i crea notificacions si cal
+  Future<void> checkExpiryNotifications(
+    String userId,
+    List<PantryItem> items,
+  ) async {
+    final count = await _service.checkExpiryNotifications(userId, items);
+    if (count > 0) {
+      await loadNotifications(userId);
+    }
   }
 }
