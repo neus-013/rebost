@@ -49,7 +49,11 @@ class PantryItem {
     if (expiryDate == null) return null;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final expiry = DateTime(expiryDate!.year, expiryDate!.month, expiryDate!.day);
+    final expiry = DateTime(
+      expiryDate!.year,
+      expiryDate!.month,
+      expiryDate!.day,
+    );
     return expiry.difference(today).inDays;
   }
 

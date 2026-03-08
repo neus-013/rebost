@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/pantry_item.dart';
 import '../models/pantry_types.dart';
+import '../models/shopping_item.dart';
 import '../providers/auth_provider.dart';
 import '../providers/pantry_provider.dart';
+import '../providers/shopping_provider.dart';
 import '../theme/app_theme.dart';
 import 'pantry_item_form_screen.dart';
 import 'pantry_manage_types_screen.dart';
@@ -399,8 +401,11 @@ class _PantryScreenState extends State<PantryScreen> {
     required Future<void> Function(int qty) onConfirm,
   }) {
     if (item.quantity <= 1) {
-      // Si només hi ha 1, no cal preguntar
-      onConfirm(1);
+      // Si només hi ha 1, no cal preguntar quantitat
+      onConfirm(1).then((_) {
+        // Totes les unitats consumides/llençades → preguntar shopping list
+        if (mounted) _askAddToShoppingList(context, item, 1);
+      });
       return;
     }
 
@@ -466,9 +471,110 @@ class _PantryScreenState extends State<PantryScreen> {
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                onConfirm(selectedQty);
+                final isAll = selectedQty >= item.quantity;
+                onConfirm(selectedQty).then((_) {
+                  if (isAll && mounted) {
+                    _askAddToShoppingList(context, item, selectedQty);
+                  }
+                });
               },
               child: Text(actionLabel, style: TextStyle(color: actionColor)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Pregunta a l'usuari si vol afegir el producte a la llista de la compra.
+  void _askAddToShoppingList(
+    BuildContext context,
+    PantryItem item,
+    int defaultQty,
+  ) {
+    int shoppingQty = defaultQty;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Afegir a la compra?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Vols afegir "${item.name}" a la llista de la compra?',
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Quantes unitats?',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: shoppingQty > 1
+                        ? () => setDialogState(() => shoppingQty--)
+                        : null,
+                    iconSize: 32,
+                  ),
+                  SizedBox(
+                    width: 60,
+                    child: Text(
+                      '$shoppingQty',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () => setDialogState(() => shoppingQty++),
+                    iconSize: 32,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('No'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                final userId =
+                    this.context.read<AuthProvider>().currentUser!.id;
+                final shoppingProvider =
+                    this.context.read<ShoppingProvider>();
+                final shoppingItem = ShoppingItem(
+                  name: item.name,
+                  quantity: shoppingQty,
+                  unit: item.unit,
+                  typeId: item.typeId,
+                  locationId: item.locationId,
+                );
+                await shoppingProvider.addItem(userId, shoppingItem);
+                if (mounted) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '"${item.name}" afegit a la llista de la compra!',
+                      ),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              },
+              child: const Text(
+                'Afegir a la compra',
+                style: TextStyle(color: Colors.orange),
+              ),
             ),
           ],
         ),

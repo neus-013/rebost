@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/notification_model.dart';
 import '../models/pantry_item.dart';
+import '../models/shopping_item.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
 import '../providers/pantry_provider.dart';
 import '../providers/shared_pantry_provider.dart';
+import '../providers/shopping_provider.dart';
 import '../theme/app_theme.dart';
 import 'profile_screen.dart';
 import 'pantry_screen.dart';
@@ -452,14 +454,13 @@ class _DashboardHome extends StatelessWidget {
     final pantryProvider = context.watch<PantryProvider>();
 
     // Productes actius amb data de caducitat dins dels propers 5 dies (o ja caducats)
-    final expiringItems = pantryProvider.allItems
-        .where((item) {
-          if (!item.isActive || item.expiryDate == null) return false;
-          final days = item.daysUntilExpiry!;
-          return days <= 5; // incloem caducats (negatiu) i fins a 5 dies
-        })
-        .toList()
-      ..sort((a, b) => a.daysUntilExpiry!.compareTo(b.daysUntilExpiry!));
+    final expiringItems =
+        pantryProvider.allItems.where((item) {
+            if (!item.isActive || item.expiryDate == null) return false;
+            final days = item.daysUntilExpiry!;
+            return days <= 5; // incloem caducats (negatiu) i fins a 5 dies
+          }).toList()
+          ..sort((a, b) => a.daysUntilExpiry!.compareTo(b.daysUntilExpiry!));
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -539,15 +540,16 @@ class _DashboardHome extends StatelessWidget {
             if (expiringItems.isNotEmpty) ...[
               Text(
                 'Productes a punt de caducar',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               ...expiringItems.map(
                 (item) => _ExpiryItemCard(
                   item: item,
-                  onDiscard: () => _discardItem(context, item, pantryProvider, user.id),
+                  onDiscard: () =>
+                      _discardItem(context, item, pantryProvider, user.id),
                 ),
               ),
               const SizedBox(height: 16),
@@ -627,7 +629,11 @@ class _DashboardHome extends StatelessWidget {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(ctx);
-              await pantryProvider.discardItem(userId, item.id, qty: item.quantity);
+              await pantryProvider.discardItem(
+                userId,
+                item.id,
+                qty: item.quantity,
+              );
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -635,11 +641,105 @@ class _DashboardHome extends StatelessWidget {
                     backgroundColor: Colors.orange,
                   ),
                 );
+                // Preguntar si vol afegir a la llista de la compra
+                _askAddToShoppingList(context, item, userId);
               }
             },
             child: const Text('Llençar', style: TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _askAddToShoppingList(
+    BuildContext context,
+    PantryItem item,
+    String userId,
+  ) {
+    int shoppingQty = item.quantity;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Afegir a la compra?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Vols afegir "${item.name}" a la llista de la compra?',
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Quantes unitats?',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: shoppingQty > 1
+                        ? () => setDialogState(() => shoppingQty--)
+                        : null,
+                    iconSize: 32,
+                  ),
+                  SizedBox(
+                    width: 60,
+                    child: Text(
+                      '$shoppingQty',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () => setDialogState(() => shoppingQty++),
+                    iconSize: 32,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('No'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                final shoppingProvider = context.read<ShoppingProvider>();
+                final shoppingItem = ShoppingItem(
+                  name: item.name,
+                  quantity: shoppingQty,
+                  unit: item.unit,
+                  typeId: item.typeId,
+                  locationId: item.locationId,
+                );
+                await shoppingProvider.addItem(userId, shoppingItem);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '"${item.name}" afegit a la llista de la compra!',
+                      ),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              },
+              child: const Text(
+                'Afegir a la compra',
+                style: TextStyle(color: Colors.orange),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -690,7 +790,11 @@ class _ExpiryItemCard extends StatelessWidget {
         trailing: days < 0
             ? TextButton.icon(
                 onPressed: onDiscard,
-                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: Colors.red,
+                ),
                 label: const Text(
                   'Llençar',
                   style: TextStyle(color: Colors.red, fontSize: 12),

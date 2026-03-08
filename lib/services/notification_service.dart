@@ -106,12 +106,14 @@ class NotificationService {
         count++;
       }
       // Producte a punt de caducar (2 dies o menys)
-      else if (days >= 0 && days <= 2 && !notifiedSet.contains(approachingKey)) {
+      else if (days >= 0 &&
+          days <= 2 &&
+          !notifiedSet.contains(approachingKey)) {
         final daysText = days == 0
             ? 'avui'
             : days == 1
-                ? 'demà'
-                : 'en $days dies';
+            ? 'demà'
+            : 'en $days dies';
         await addNotification(
           userId,
           AppNotification(
@@ -130,10 +132,7 @@ class NotificationService {
       }
     }
 
-    await prefs.setStringList(
-      _expiryNotifiedKey(userId),
-      notifiedSet.toList(),
-    );
+    await prefs.setStringList(_expiryNotifiedKey(userId), notifiedSet.toList());
     return count;
   }
 }
