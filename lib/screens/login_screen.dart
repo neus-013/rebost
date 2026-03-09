@@ -114,8 +114,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     });
                   },
                   style: SegmentedButton.styleFrom(
-                    selectedBackgroundColor:
-                        AppTheme.primaryColor.withValues(alpha: 0.15),
+                    selectedBackgroundColor: AppTheme.primaryColor.withValues(
+                      alpha: 0.15,
+                    ),
                     selectedForegroundColor: AppTheme.primaryColor,
                   ),
                 ),
@@ -172,19 +173,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 12),
                     Text(
                       'No hi ha cap perfil en aquest dispositiu',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyLarge
-                          ?.copyWith(color: Colors.grey[600]),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Crea un compte nou per començar',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: Colors.grey),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),

@@ -5,18 +5,21 @@ Una app per a la gestió del rebost domèstic. Feta amb Flutter.
 ## Funcionalitats
 
 ### Autenticació i perfils
+
 - Creació de comptes locals amb nom, nom d'usuari, correu electrònic opcional i contrasenya
 - Contrasenyes encriptades amb SHA-256 (10.000 iteracions + salt aleatori de 32 bytes)
 - Pantalla d'inici amb opcions d'iniciar sessió i crear compte
 - Suport per a múltiples perfils al mateix dispositiu
 
 ### Dashboard
+
 - Salutació personalitzada segons l'hora del dia
 - Resum ràpid: total de productes, per caducar aviat, caducats
 - Notificacions de caducitat amb cercles de colors (verd, taronja, vermell)
 - Accions ràpides: obrir, consumir i descartar productes directament
 
 ### El meu rebost
+
 - Gestió completa de productes: afegir, editar i eliminar
 - Tipus de producte personalitzables (~20 tipus per defecte: fruita, verdura, lactis, etc.)
 - Ubicacions personalitzables (nevera, congelador, rebost, etc.)
@@ -25,17 +28,20 @@ Una app per a la gestió del rebost domèstic. Feta amb Flutter.
 - Control d'estat: disponible, obert, consumit, descartat
 
 ### Rebost compartit
+
 - Compartir el rebost amb altres usuaris mitjançant invitacions
 - Sistema d'invitacions amb acceptar/rebutjar
 - Visualització dels productes dels rebosts compartits
 
 ### Llista de la compra
+
 - Creació manual de productes a comprar
 - Afegir productes automàticament quan es consumeix/descarta l'últim del rebost
 - Selecció múltiple per comprar diversos productes alhora
 - Opcions: comprar individual, comprar seleccionats o comprar-ho tot
 
 ### Notificacions
+
 - Avisos de productes a punt de caducar (5 dies o menys)
 - Avisos de productes ja caducats
 - Indicadors visuals al dashboard amb cercles de colors
