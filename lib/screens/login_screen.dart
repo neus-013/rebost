@@ -12,16 +12,31 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // Controladors del formulari de creació
   final _nameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isCreatingAccount = false;
+
+  /// true = formulari de crear compte, false = formulari de login
+  bool _isCreateMode = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   String? _formError;
+
+  @override
+  void initState() {
+    super.initState();
+    // Per defecte, mostrar login si hi ha usuaris, crear si no n'hi ha
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = context.read<AuthProvider>();
+      if (authProvider.users.isEmpty) {
+        setState(() => _isCreateMode = true);
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -75,69 +90,119 @@ class _LoginScreenState extends State<LoginScreen> {
                   ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 32),
 
-                // Llista d'usuaris existents
-                if (authProvider.users.isNotEmpty && !_isCreatingAccount) ...[
-                  Text(
-                    'Selecciona el teu perfil',
-                    style: Theme.of(context).textTheme.titleMedium,
+                // Selector de mode: Login / Crear compte
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(
+                      value: false,
+                      label: Text('Iniciar sessió'),
+                      icon: Icon(Icons.login),
+                    ),
+                    ButtonSegment(
+                      value: true,
+                      label: Text('Crear compte'),
+                      icon: Icon(Icons.person_add),
+                    ),
+                  ],
+                  selected: {_isCreateMode},
+                  onSelectionChanged: (selection) {
+                    setState(() {
+                      _isCreateMode = selection.first;
+                      _formError = null;
+                    });
+                  },
+                  style: SegmentedButton.styleFrom(
+                    selectedBackgroundColor:
+                        AppTheme.primaryColor.withValues(alpha: 0.15),
+                    selectedForegroundColor: AppTheme.primaryColor,
                   ),
-                  const SizedBox(height: 16),
-                  ...authProvider.users.map(
-                    (user) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Card(
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: AppTheme.primaryColor,
-                            child: Text(
-                              user.name[0].toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                ),
+                const SizedBox(height: 32),
+
+                // ── MODE LOGIN ──
+                if (!_isCreateMode) ...[
+                  // Llista d'usuaris existents (si n'hi ha)
+                  if (authProvider.users.isNotEmpty) ...[
+                    Text(
+                      'Selecciona el teu perfil',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    ...authProvider.users.map(
+                      (user) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Card(
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: AppTheme.primaryColor,
+                              child: Text(
+                                user.name[0].toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
-                          title: Text(user.name),
-                          subtitle: Text('@${user.username}'),
-                          trailing: const Icon(
-                            Icons.arrow_forward_ios,
-                            size: 16,
-                          ),
-                          onTap: () => _showLoginPasswordDialog(
-                            context,
-                            user,
-                            authProvider,
+                            title: Text(user.name),
+                            subtitle: Text('@${user.username}'),
+                            trailing: const Icon(
+                              Icons.arrow_forward_ios,
+                              size: 16,
+                            ),
+                            onTap: () => _showLoginPasswordDialog(
+                              context,
+                              user,
+                              authProvider,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton.icon(
-                    onPressed: () => setState(() => _isCreatingAccount = true),
-                    icon: const Icon(Icons.person_add),
-                    label: const Text('Crear un nou perfil'),
-                  ),
-                ],
+                  ],
 
-                // Formulari de creació
-                if (authProvider.users.isEmpty || _isCreatingAccount) ...[
-                  if (_isCreatingAccount)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: () =>
-                            setState(() => _isCreatingAccount = false),
-                        icon: const Icon(Icons.arrow_back),
-                        label: const Text('Tornar'),
+                  // Formulari de login per nom d'usuari
+                  if (authProvider.users.isEmpty) ...[
+                    Icon(
+                      Icons.person_search,
+                      size: 48,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No hi ha cap perfil en aquest dispositiu',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyLarge
+                          ?.copyWith(color: Colors.grey[600]),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Crea un compte nou per començar',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () => setState(() => _isCreateMode = true),
+                      icon: const Icon(Icons.person_add),
+                      label: const Text('Crear compte'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.primaryColor,
                       ),
                     ),
+                  ],
+                ],
+
+                // ── MODE CREAR COMPTE ──
+                if (_isCreateMode) ...[
                   Text(
-                    authProvider.users.isEmpty
-                        ? 'Crea el teu perfil'
-                        : 'Nou perfil',
+                    'Crea el teu perfil',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 16),
@@ -274,7 +339,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: const Padding(
                               padding: EdgeInsets.symmetric(vertical: 4),
                               child: Text(
-                                'Començar',
+                                'Crear compte',
                                 style: TextStyle(fontSize: 16),
                               ),
                             ),

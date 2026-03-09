@@ -501,9 +501,7 @@ class _PantryScreenState extends State<PantryScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'Vols afegir "${item.name}" a la llista de la compra?',
-              ),
+              Text('Vols afegir "${item.name}" a la llista de la compra?'),
               const SizedBox(height: 16),
               Text(
                 'Quantes unitats?',
@@ -548,10 +546,11 @@ class _PantryScreenState extends State<PantryScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.pop(ctx);
-                final userId =
-                    this.context.read<AuthProvider>().currentUser!.id;
-                final shoppingProvider =
-                    this.context.read<ShoppingProvider>();
+                final userId = this.context
+                    .read<AuthProvider>()
+                    .currentUser!
+                    .id;
+                final shoppingProvider = this.context.read<ShoppingProvider>();
                 final shoppingItem = ShoppingItem(
                   name: item.name,
                   quantity: shoppingQty,

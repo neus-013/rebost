@@ -666,9 +666,7 @@ class _DashboardHome extends StatelessWidget {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'Vols afegir "${item.name}" a la llista de la compra?',
-              ),
+              Text('Vols afegir "${item.name}" a la llista de la compra?'),
               const SizedBox(height: 16),
               Text(
                 'Quantes unitats?',

@@ -180,8 +180,7 @@ class _ShoppingItemFormScreenState extends State<ShoppingItemFormScreen> {
                   child: Text('${loc.icon} ${loc.name}'),
                 );
               }).toList(),
-              onChanged: (value) =>
-                  setState(() => _selectedLocationId = value),
+              onChanged: (value) => setState(() => _selectedLocationId = value),
               validator: (value) {
                 if (value == null) return 'Selecciona una ubicació';
                 return null;
@@ -194,9 +193,7 @@ class _ShoppingItemFormScreenState extends State<ShoppingItemFormScreen> {
             FilledButton.icon(
               onPressed: _save,
               icon: Icon(_isEditing ? Icons.save : Icons.add),
-              label: Text(
-                _isEditing ? 'Desar canvis' : 'Afegir a la llista',
-              ),
+              label: Text(_isEditing ? 'Desar canvis' : 'Afegir a la llista'),
               style: FilledButton.styleFrom(
                 backgroundColor: AppTheme.primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 16),

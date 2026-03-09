@@ -56,8 +56,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       itemBuilder: (context, index) {
                         final item = shoppingProvider.items[index];
                         final type = pantryProvider.getTypeById(item.typeId);
-                        final location =
-                            pantryProvider.getLocationById(item.locationId);
+                        final location = pantryProvider.getLocationById(
+                          item.locationId,
+                        );
                         final isSelected = shoppingProvider.isSelected(item.id);
 
                         return _ShoppingItemTile(
@@ -165,23 +166,25 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey[400]),
+            Icon(
+              Icons.shopping_cart_outlined,
+              size: 64,
+              color: Colors.grey[400],
+            ),
             const SizedBox(height: 16),
             Text(
               'La llista de la compra és buida',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(color: Colors.grey[600]),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               'Afegeix productes prement el botó +',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: Colors.grey),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],
@@ -360,9 +363,7 @@ class _ShoppingItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      color: isSelected
-          ? AppTheme.primaryColor.withValues(alpha: 0.08)
-          : null,
+      color: isSelected ? AppTheme.primaryColor.withValues(alpha: 0.08) : null,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: isSelected
@@ -416,10 +417,7 @@ class _ShoppingItemTile extends StatelessWidget {
                             fontSize: 13,
                           ),
                         ),
-                        const Text(
-                          ' · ',
-                          style: TextStyle(color: Colors.grey),
-                        ),
+                        const Text(' · ', style: TextStyle(color: Colors.grey)),
                         Text(
                           typeName,
                           style: TextStyle(
