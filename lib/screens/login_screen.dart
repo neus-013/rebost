@@ -27,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscureConfirm = true;
   String? _formError;
   bool _isSubmitting = false;
+  String? _resendMessage;
 
   @override
   void dispose() {
@@ -40,6 +41,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+
+    // Si estem esperant verificació d'email
+    if (authProvider.pendingEmailVerification) {
+      return _buildVerificationScreen(context, authProvider);
+    }
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -285,8 +293,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           onPressed: _isSubmitting
                               ? null
                               : _isCreateMode
-                                  ? _handleSignUp
-                                  : _handleLogin,
+                              ? _handleSignUp
+                              : _handleLogin,
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 4),
                             child: _isSubmitting
@@ -353,5 +361,112 @@ class _LoginScreenState extends State<LoginScreen> {
         _formError = error;
       });
     }
+  }
+
+  Widget _buildVerificationScreen(
+    BuildContext context,
+    AuthProvider authProvider,
+  ) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: const Icon(
+                    Icons.mark_email_read,
+                    size: 60,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'Comprova el teu correu!',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'T\'hem enviat un correu de verificació a:',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  authProvider.pendingEmail ?? '',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Clica l\'enllaç del correu per activar el teu compte. '
+                  'Després torna aquí i inicia sessió.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[600],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      authProvider.clearPendingVerification();
+                    },
+                    icon: const Icon(Icons.login),
+                    label: const Text('Anar a iniciar sessió'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: () async {
+                    final error =
+                        await authProvider.resendVerificationEmail();
+                    if (mounted) {
+                      setState(() {
+                        _resendMessage = error ??
+                            'Correu reenviat! Comprova la safata d\'entrada.';
+                      });
+                    }
+                  },
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('Reenviar correu de verificació'),
+                ),
+                if (_resendMessage != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _resendMessage!,
+                    style: TextStyle(
+                      color: _resendMessage!.contains('reenviat')
+                          ? AppTheme.primaryColor
+                          : Colors.red,
+                      fontSize: 13,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

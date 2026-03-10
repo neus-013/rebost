@@ -15,9 +15,7 @@ class PantryService {
         .select()
         .eq('owner_id', ownerId)
         .order('created_at');
-    return (response as List)
-        .map((json) => PantryItem.fromJson(json))
-        .toList();
+    return (response as List).map((json) => PantryItem.fromJson(json)).toList();
   }
 
   Future<List<PantryItem>> getActiveItems(String ownerId) async {
@@ -27,9 +25,7 @@ class PantryService {
         .eq('owner_id', ownerId)
         .inFilter('status', ['tancat', 'encetat'])
         .order('created_at');
-    return (response as List)
-        .map((json) => PantryItem.fromJson(json))
-        .toList();
+    return (response as List).map((json) => PantryItem.fromJson(json)).toList();
   }
 
   Future<PantryItem> addItem(String ownerId, PantryItem item) async {
@@ -51,25 +47,34 @@ class PantryService {
   }
 
   Future<void> openItem(String ownerId, String itemId) async {
-    await _client.from('pantry_items').update({
-      'status': 'encetat',
-      'opened_date': DateTime.now().toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', itemId);
+    await _client
+        .from('pantry_items')
+        .update({
+          'status': 'encetat',
+          'opened_date': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', itemId);
   }
 
   Future<void> consumeItem(String ownerId, String itemId) async {
-    await _client.from('pantry_items').update({
-      'status': 'consumit',
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', itemId);
+    await _client
+        .from('pantry_items')
+        .update({
+          'status': 'consumit',
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', itemId);
   }
 
   Future<void> discardItem(String ownerId, String itemId) async {
-    await _client.from('pantry_items').update({
-      'status': 'llencat',
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', itemId);
+    await _client
+        .from('pantry_items')
+        .update({
+          'status': 'llencat',
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id', itemId);
   }
 
   String generateId() => _uuid.v4();
@@ -89,9 +94,7 @@ class PantryService {
           .from('item_types')
           .select()
           .eq('owner_id', ownerId);
-      return (retry as List)
-          .map((json) => ItemType.fromJson(json))
-          .toList();
+      return (retry as List).map((json) => ItemType.fromJson(json)).toList();
     }
 
     return response.map((json) => ItemType.fromJson(json)).toList();
@@ -164,7 +167,10 @@ class PantryService {
     await _client.from('item_locations').upsert(data);
   }
 
-  Future<ItemLocation> addLocation(String ownerId, ItemLocation location) async {
+  Future<ItemLocation> addLocation(
+    String ownerId,
+    ItemLocation location,
+  ) async {
     final data = location.toJson();
     data['owner_id'] = ownerId;
     await _client.from('item_locations').insert(data);

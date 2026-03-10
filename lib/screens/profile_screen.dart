@@ -489,7 +489,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                if (error != null) ...[  
+                if (error != null) ...[
                   const SizedBox(height: 12),
                   Text(
                     error!,
@@ -519,7 +519,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   );
                   return;
                 }
-                final result = await authProvider.changePassword(newPwdCtrl.text);
+                final result = await authProvider.changePassword(
+                  newPwdCtrl.text,
+                );
                 if (result != null) {
                   setDialogState(() => error = result);
                   return;

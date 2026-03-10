@@ -37,9 +37,7 @@ class SharedPantryService {
         .from('pantry_shares')
         .select('member_id')
         .eq('owner_id', ownerId);
-    return (response as List)
-        .map((r) => r['member_id'] as String)
-        .toList();
+    return (response as List).map((r) => r['member_id'] as String).toList();
   }
 
   /// Afegeix un membre al rebost.
@@ -68,9 +66,7 @@ class SharedPantryService {
         .select()
         .eq('to_user_id', userId)
         .eq('status', 'pending');
-    return (response as List)
-        .map((json) => Invitation.fromJson(json))
-        .toList();
+    return (response as List).map((json) => Invitation.fromJson(json)).toList();
   }
 
   /// Obté les invitacions enviades per un usuari.
@@ -79,9 +75,7 @@ class SharedPantryService {
         .from('invitations')
         .select()
         .eq('from_user_id', userId);
-    return (response as List)
-        .map((json) => Invitation.fromJson(json))
-        .toList();
+    return (response as List).map((json) => Invitation.fromJson(json)).toList();
   }
 
   /// Crea una nova invitació.

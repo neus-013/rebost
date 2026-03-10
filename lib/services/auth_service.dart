@@ -22,8 +22,10 @@ class AuthService {
 
   // ── Registre ──────────────────────────────────────────
 
-  /// Crea un compte nou amb email i contrasenya
-  Future<UserModel> signUp({
+  /// Crea un compte nou amb email i contrasenya.
+  /// Retorna true si cal verificar l'email, false si ja té sessió.
+  /// El perfil es crea automàticament via trigger a la BD.
+  Future<bool> signUp({
     required String email,
     required String password,
     required String name,
@@ -39,24 +41,27 @@ class AuthService {
       throw Exception('El nom d\'usuari "$username" ja està en ús');
     }
 
-    // Registrar-se amb Supabase Auth
+    // Registrar-se amb Supabase Auth (metadades per al trigger)
     final authResponse = await _client.auth.signUp(
       email: email,
       password: password,
+      data: {'name': name, 'username': username},
     );
 
     final user = authResponse.user;
     if (user == null) throw Exception('Error al crear el compte');
 
-    // Crear perfil a la taula profiles
-    await _client.from('profiles').insert({
-      'id': user.id,
-      'name': name,
-      'username': username,
-      'email': email,
-    });
+    // Si no hi ha sessió, cal verificar l'email
+    if (authResponse.session == null) {
+      return true;
+    }
 
-    return UserModel(id: user.id, name: name, username: username, email: email);
+    return false;
+  }
+
+  /// Reenvia el correu de verificació
+  Future<void> resendVerificationEmail(String email) async {
+    await _client.auth.resend(type: OtpType.signup, email: email);
   }
 
   // ── Inici de sessió ──────────────────────────────────

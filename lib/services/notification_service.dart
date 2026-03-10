@@ -114,8 +114,8 @@ class NotificationService {
         final daysText = days == 0
             ? 'avui'
             : days == 1
-                ? 'demà'
-                : 'en $days dies';
+            ? 'demà'
+            : 'en $days dies';
         await addNotification(
           userId,
           AppNotification(

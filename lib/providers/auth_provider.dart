@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
-import '../services/notification_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
-  final NotificationService _notificationService = NotificationService();
 
   UserModel? _currentUser;
   bool _isLoading = true;
@@ -13,9 +11,14 @@ class AuthProvider extends ChangeNotifier {
   /// Cache de perfils per evitar consultes repetides
   final Map<String, UserModel> _profileCache = {};
 
+  bool _pendingEmailVerification = false;
+  String? _pendingEmail;
+
   UserModel? get currentUser => _currentUser;
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _currentUser != null;
+  bool get pendingEmailVerification => _pendingEmailVerification;
+  String? get pendingEmail => _pendingEmail;
 
   Future<void> init() async {
     _isLoading = true;
@@ -27,7 +30,8 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Registre amb email i contrasenya
+  /// Registre amb email i contrasenya.
+  /// Retorna null si tot ha anat bé (pot requerir verificació d'email).
   Future<String?> signUp({
     required String name,
     required String username,
@@ -35,19 +39,48 @@ class AuthProvider extends ChangeNotifier {
     required String password,
   }) async {
     try {
-      final user = await _authService.signUp(
+      _pendingEmailVerification = false;
+      _pendingEmail = null;
+
+      final needsVerification = await _authService.signUp(
         email: email,
         password: password,
         name: name,
         username: username,
       );
-      await _notificationService.addWelcomeNotification(user.id, user.name);
-      _currentUser = user;
+
+      if (needsVerification) {
+        _pendingEmailVerification = true;
+        _pendingEmail = email;
+        notifyListeners();
+        return null;
+      }
+
+      // Si no cal verificació (cas improbable amb confirm email activat)
+      _currentUser = await _authService.getCurrentUser();
       notifyListeners();
       return null;
     } catch (e) {
       return e.toString().replaceFirst('Exception: ', '');
     }
+  }
+
+  /// Reenvia el correu de verificació
+  Future<String?> resendVerificationEmail() async {
+    if (_pendingEmail == null) return 'No hi ha cap correu pendent';
+    try {
+      await _authService.resendVerificationEmail(_pendingEmail!);
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    }
+  }
+
+  /// Torna de la pantalla de verificació al formulari de login
+  void clearPendingVerification() {
+    _pendingEmailVerification = false;
+    _pendingEmail = null;
+    notifyListeners();
   }
 
   /// Iniciar sessió amb email i contrasenya
