@@ -1,53 +1,38 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../models/notification_model.dart';
 import '../models/pantry_item.dart';
 
 class NotificationService {
   final Uuid _uuid = const Uuid();
-
-  String _notificationsKey(String userId) => 'user_${userId}_notifications';
-  String _expiryNotifiedKey(String userId) => 'user_${userId}_expiry_notified';
+  SupabaseClient get _client => Supabase.instance.client;
 
   Future<List<AppNotification>> getNotifications(String userId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final notifJson = prefs.getStringList(_notificationsKey(userId)) ?? [];
-    final notifications = notifJson
-        .map(
-          (json) => AppNotification.fromJson(
-            jsonDecode(json) as Map<String, dynamic>,
-          ),
-        )
+    final response = await _client
+        .from('notifications')
+        .select()
+        .eq('user_id', userId)
+        .order('date', ascending: false);
+    return (response as List)
+        .map((json) => AppNotification.fromJson(json))
         .toList();
-    notifications.sort((a, b) => b.date.compareTo(a.date));
-    return notifications;
   }
 
   Future<void> addNotification(
     String userId,
     AppNotification notification,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final notifications = await getNotifications(userId);
-    notifications.add(notification);
-    await prefs.setStringList(
-      _notificationsKey(userId),
-      notifications.map((n) => jsonEncode(n.toJson())).toList(),
-    );
+    final data = notification.toJson();
+    data['user_id'] = userId;
+    await _client.from('notifications').insert(data);
   }
 
   Future<void> markAsRead(String userId, String notificationId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final notifications = await getNotifications(userId);
-    final index = notifications.indexWhere((n) => n.id == notificationId);
-    if (index != -1) {
-      notifications[index].isRead = true;
-      await prefs.setStringList(
-        _notificationsKey(userId),
-        notifications.map((n) => jsonEncode(n.toJson())).toList(),
-      );
-    }
+    await _client
+        .from('notifications')
+        .update({'is_read': true})
+        .eq('id', notificationId)
+        .eq('user_id', userId);
   }
 
   Future<void> addWelcomeNotification(String userId, String userName) async {
@@ -64,8 +49,12 @@ class NotificationService {
   }
 
   Future<int> getUnreadCount(String userId) async {
-    final notifications = await getNotifications(userId);
-    return notifications.where((n) => !n.isRead).length;
+    final response = await _client
+        .from('notifications')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('is_read', false);
+    return (response as List).length;
   }
 
   /// Comprova els productes i crea notificacions de caducitat.
@@ -74,10 +63,19 @@ class NotificationService {
     String userId,
     List<PantryItem> items,
   ) async {
-    final prefs = await SharedPreferences.getInstance();
-    // Registre d'ítems ja notificats: "itemId:tipus" (approaching / expired)
-    final notifiedSet = (prefs.getStringList(_expiryNotifiedKey(userId)) ?? [])
-        .toSet();
+    // Obtenir els items ja notificats
+    final existingNotifs = await _client
+        .from('expiry_notified')
+        .select()
+        .eq('user_id', userId);
+
+    final notifiedSet = <String>{};
+    for (final n in existingNotifs) {
+      final itemId = n['item_id'] as String;
+      final type = n['notification_type'] as String;
+      notifiedSet.add('$itemId:$type');
+    }
+
     int count = 0;
 
     for (final item in items) {
@@ -102,7 +100,11 @@ class NotificationService {
             relatedItemId: item.id,
           ),
         );
-        notifiedSet.add(expiredKey);
+        await _client.from('expiry_notified').upsert({
+          'user_id': userId,
+          'item_id': item.id,
+          'notification_type': 'expired',
+        });
         count++;
       }
       // Producte a punt de caducar (2 dies o menys)
@@ -112,8 +114,8 @@ class NotificationService {
         final daysText = days == 0
             ? 'avui'
             : days == 1
-            ? 'demà'
-            : 'en $days dies';
+                ? 'demà'
+                : 'en $days dies';
         await addNotification(
           userId,
           AppNotification(
@@ -127,12 +129,15 @@ class NotificationService {
             relatedItemId: item.id,
           ),
         );
-        notifiedSet.add(approachingKey);
+        await _client.from('expiry_notified').upsert({
+          'user_id': userId,
+          'item_id': item.id,
+          'notification_type': 'approaching',
+        });
         count++;
       }
     }
 
-    await prefs.setStringList(_expiryNotifiedKey(userId), notifiedSet.toList());
     return count;
   }
 }

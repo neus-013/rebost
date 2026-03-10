@@ -23,8 +23,8 @@ class AppNotification {
     'message': message,
     'date': date.toIso8601String(),
     'type': type.name,
-    'relatedItemId': relatedItemId,
-    'isRead': isRead,
+    'related_item_id': relatedItemId,
+    'is_read': isRead,
   };
 
   factory AppNotification.fromJson(Map<String, dynamic> json) =>
@@ -34,8 +34,8 @@ class AppNotification {
         message: json['message'] as String,
         date: DateTime.parse(json['date'] as String),
         type: NotificationType.values.byName(json['type'] as String),
-        relatedItemId: json['relatedItemId'] as String?,
-        isRead: json['isRead'] as bool? ?? false,
+        relatedItemId: json['related_item_id'] as String?,
+        isRead: json['is_read'] as bool? ?? false,
       );
 }
 

@@ -18,14 +18,14 @@ class ItemType {
     'id': id,
     'name': name,
     'icon': icon,
-    'isDefault': isDefault,
+    'is_default': isDefault,
   };
 
   factory ItemType.fromJson(Map<String, dynamic> json) => ItemType(
     id: json['id'] as String,
     name: json['name'] as String,
     icon: json['icon'] as String? ?? '🏷️',
-    isDefault: json['isDefault'] as bool? ?? false,
+    isDefault: json['is_default'] as bool? ?? false,
   );
 
   String toJsonString() => jsonEncode(toJson());
@@ -119,14 +119,14 @@ class ItemLocation {
     'id': id,
     'name': name,
     'icon': icon,
-    'isDefault': isDefault,
+    'is_default': isDefault,
   };
 
   factory ItemLocation.fromJson(Map<String, dynamic> json) => ItemLocation(
     id: json['id'] as String,
     name: json['name'] as String,
     icon: json['icon'] as String? ?? '📍',
-    isDefault: json['isDefault'] as bool? ?? false,
+    isDefault: json['is_default'] as bool? ?? false,
   );
 
   String toJsonString() => jsonEncode(toJson());

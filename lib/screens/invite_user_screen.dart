@@ -20,6 +20,24 @@ class _InviteUserScreenState extends State<InviteUserScreen> {
   bool _isSending = false;
 
   @override
+  void initState() {
+    super.initState();
+    _prefetchProfiles();
+  }
+
+  Future<void> _prefetchProfiles() async {
+    final authProvider = context.read<AuthProvider>();
+    final sharedProvider = context.read<SharedPantryProvider>();
+    for (final inv in sharedProvider.sentInvitations) {
+      await authProvider.getProfileById(inv.toUserId);
+    }
+    for (final memberId in sharedProvider.members) {
+      await authProvider.getProfileById(memberId);
+    }
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -234,7 +252,7 @@ class _InviteUserScreenState extends State<InviteUserScreen> {
               ),
               const SizedBox(height: 12),
               ...sharedProvider.sentInvitations.map((inv) {
-                final toUser = authProvider.getUserById(inv.toUserId);
+                final toUser = authProvider.getCachedProfile(inv.toUserId);
                 return Card(
                   child: ListTile(
                     leading: CircleAvatar(
@@ -280,7 +298,7 @@ class _InviteUserScreenState extends State<InviteUserScreen> {
               ),
               const SizedBox(height: 12),
               ...sharedProvider.members.map((memberId) {
-                final memberUser = authProvider.getUserById(memberId);
+                final memberUser = authProvider.getCachedProfile(memberId);
                 final isOwner = memberId == sharedProvider.effectiveOwnerId;
                 return Card(
                   child: ListTile(

@@ -212,10 +212,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _showPendingInvitations(BuildContext context) {
+  void _showPendingInvitations(BuildContext context) async {
     final authProvider = context.read<AuthProvider>();
     final sharedProvider = context.read<SharedPantryProvider>();
     final pantryProvider = context.read<PantryProvider>();
+
+    // Pre-fetch profiles for pending invitations
+    for (final inv in sharedProvider.pendingInvitations) {
+      await authProvider.getProfileById(inv.fromUserId);
+    }
+    if (!context.mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -257,7 +263,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             }
             final inv = pending[index - 1];
-            final fromUser = authProvider.getUserById(inv.fromUserId);
+            final fromUser = authProvider.getCachedProfile(inv.fromUserId);
             return Card(
               child: ListTile(
                 leading: CircleAvatar(

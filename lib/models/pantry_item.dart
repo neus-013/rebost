@@ -73,15 +73,15 @@ class PantryItem {
     'name': name,
     'quantity': quantity,
     'unit': unit,
-    'typeId': typeId,
-    'locationId': locationId,
-    'expiryDate': expiryDate?.toIso8601String(),
-    'purchaseDate': purchaseDate?.toIso8601String(),
-    'openedDate': openedDate?.toIso8601String(),
+    'type_id': typeId,
+    'location_id': locationId,
+    'expiry_date': expiryDate?.toIso8601String(),
+    'purchase_date': purchaseDate?.toIso8601String(),
+    'opened_date': openedDate?.toIso8601String(),
     'status': status.name,
-    'createdAt': createdAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
-    'parentId': parentId,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
+    'parent_id': parentId,
   };
 
   factory PantryItem.fromJson(Map<String, dynamic> json) => PantryItem(
@@ -91,21 +91,21 @@ class PantryItem {
         ? json['quantity'] as int
         : int.tryParse(json['quantity'].toString()) ?? 1,
     unit: json['unit'] as String? ?? 'unitats',
-    typeId: json['typeId'] as String,
-    locationId: json['locationId'] as String,
-    expiryDate: json['expiryDate'] != null
-        ? DateTime.parse(json['expiryDate'] as String)
+    typeId: json['type_id'] as String,
+    locationId: json['location_id'] as String,
+    expiryDate: json['expiry_date'] != null
+        ? DateTime.parse(json['expiry_date'] as String)
         : null,
-    purchaseDate: json['purchaseDate'] != null
-        ? DateTime.parse(json['purchaseDate'] as String)
+    purchaseDate: json['purchase_date'] != null
+        ? DateTime.parse(json['purchase_date'] as String)
         : null,
-    openedDate: json['openedDate'] != null
-        ? DateTime.parse(json['openedDate'] as String)
+    openedDate: json['opened_date'] != null
+        ? DateTime.parse(json['opened_date'] as String)
         : null,
     status: PantryItemStatus.values.byName(json['status'] as String),
-    createdAt: DateTime.parse(json['createdAt'] as String),
-    updatedAt: DateTime.parse(json['updatedAt'] as String),
-    parentId: json['parentId'] as String?,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    updatedAt: DateTime.parse(json['updated_at'] as String),
+    parentId: json['parent_id'] as String?,
   );
 
   PantryItem copyWith({

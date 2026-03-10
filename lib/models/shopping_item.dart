@@ -31,10 +31,10 @@ class ShoppingItem {
     'name': name,
     'quantity': quantity,
     'unit': unit,
-    'typeId': typeId,
-    'locationId': locationId,
-    'createdAt': createdAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
+    'type_id': typeId,
+    'location_id': locationId,
+    'created_at': createdAt.toIso8601String(),
+    'updated_at': updatedAt.toIso8601String(),
   };
 
   factory ShoppingItem.fromJson(Map<String, dynamic> json) => ShoppingItem(
@@ -44,10 +44,10 @@ class ShoppingItem {
         ? json['quantity'] as int
         : int.tryParse(json['quantity'].toString()) ?? 1,
     unit: json['unit'] as String? ?? 'unitats',
-    typeId: json['typeId'] as String,
-    locationId: json['locationId'] as String,
-    createdAt: DateTime.parse(json['createdAt'] as String),
-    updatedAt: DateTime.parse(json['updatedAt'] as String),
+    typeId: json['type_id'] as String,
+    locationId: json['location_id'] as String,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    updatedAt: DateTime.parse(json['updated_at'] as String),
   );
 
   ShoppingItem copyWith({

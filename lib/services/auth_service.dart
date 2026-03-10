@@ -1,213 +1,174 @@
-import 'dart:convert';
-import 'dart:math';
-import 'package:crypto/crypto.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 
 class AuthService {
-  static const String _usersKey = 'rebost_users';
-  static const String _currentUserKey = 'rebost_current_user';
-  final Uuid _uuid = const Uuid();
+  SupabaseClient get _client => Supabase.instance.client;
 
-  // ── Hashing ──────────────────────────────────────────
+  // ── Sessió ──────────────────────────────────────────
 
-  /// Genera un salt aleatori de 32 bytes codificat en base64
-  String _generateSalt() {
-    final random = Random.secure();
-    final saltBytes = List<int>.generate(32, (_) => random.nextInt(256));
-    return base64Encode(saltBytes);
-  }
-
-  /// Retorna el hash SHA-256 de la contrasenya + salt
-  String _hashPassword(String password, String salt) {
-    final bytes = utf8.encode('$salt:$password');
-    // Fem múltiples iteracions per ser més segurs
-    var digest = sha256.convert(bytes);
-    for (var i = 0; i < 9999; i++) {
-      digest = sha256.convert(utf8.encode('$salt:${digest.toString()}'));
-    }
-    return digest.toString();
-  }
-
-  /// Verifica que la contrasenya coincideix amb el hash guardat
-  bool verifyPassword(String password, String storedHash, String salt) {
-    return _hashPassword(password, salt) == storedHash;
-  }
-
-  Future<List<UserModel>> getUsers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final usersJson = prefs.getStringList(_usersKey) ?? [];
-    return usersJson.map((json) => UserModel.fromJsonString(json)).toList();
-  }
-
+  /// Retorna el perfil de l'usuari autenticat actual, o null
   Future<UserModel?> getCurrentUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString(_currentUserKey);
-    if (userId == null) return null;
-    final users = await getUsers();
-    try {
-      return users.firstWhere((u) => u.id == userId);
-    } catch (_) {
-      return null;
+    final user = _client.auth.currentUser;
+    if (user == null) return null;
+
+    final response = await _client
+        .from('profiles')
+        .select()
+        .eq('id', user.id)
+        .maybeSingle();
+    if (response == null) return null;
+    return UserModel.fromJson(response);
+  }
+
+  // ── Registre ──────────────────────────────────────────
+
+  /// Crea un compte nou amb email i contrasenya
+  Future<UserModel> signUp({
+    required String email,
+    required String password,
+    required String name,
+    required String username,
+  }) async {
+    // Verificar que el username no estigui en ús
+    final existing = await _client
+        .from('profiles')
+        .select('id')
+        .ilike('username', username)
+        .maybeSingle();
+    if (existing != null) {
+      throw Exception('El nom d\'usuari "$username" ja està en ús');
     }
+
+    // Registrar-se amb Supabase Auth
+    final authResponse = await _client.auth.signUp(
+      email: email,
+      password: password,
+    );
+
+    final user = authResponse.user;
+    if (user == null) throw Exception('Error al crear el compte');
+
+    // Crear perfil a la taula profiles
+    await _client.from('profiles').insert({
+      'id': user.id,
+      'name': name,
+      'username': username,
+      'email': email,
+    });
+
+    return UserModel(id: user.id, name: name, username: username, email: email);
   }
 
-  /// Comprova si un username ja existeix (retorna true si està ocupat)
+  // ── Inici de sessió ──────────────────────────────────
+
+  /// Inicia sessió amb email i contrasenya
+  Future<UserModel> signIn({
+    required String email,
+    required String password,
+  }) async {
+    final authResponse = await _client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+
+    final user = authResponse.user;
+    if (user == null) throw Exception('Error al iniciar sessió');
+
+    final response = await _client
+        .from('profiles')
+        .select()
+        .eq('id', user.id)
+        .single();
+    return UserModel.fromJson(response);
+  }
+
+  /// Tanca la sessió
+  Future<void> signOut() async {
+    await _client.auth.signOut();
+  }
+
+  // ── Perfil ──────────────────────────────────────────
+
+  /// Actualitza el perfil d'un usuari
+  Future<void> updateProfile(UserModel profile) async {
+    // Verificar unicitat del username
+    if (await isUsernameTaken(profile.username, excludeUserId: profile.id)) {
+      throw Exception('El nom d\'usuari "${profile.username}" ja està en ús');
+    }
+
+    await _client
+        .from('profiles')
+        .update({
+          'name': profile.name,
+          'username': profile.username,
+          'email': profile.email,
+          'avatar_url': profile.avatarUrl,
+        })
+        .eq('id', profile.id);
+  }
+
+  /// Canvia la contrasenya (l'usuari ja està autenticat)
+  Future<void> changePassword(String newPassword) async {
+    await _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
+  // ── Cerques ──────────────────────────────────────────
+
+  /// Comprova si un username ja existeix
   Future<bool> isUsernameTaken(String username, {String? excludeUserId}) async {
-    final users = await getUsers();
-    return users.any(
-      (u) =>
-          u.username.toLowerCase() == username.toLowerCase() &&
-          u.id != excludeUserId,
-    );
+    var query = _client
+        .from('profiles')
+        .select('id')
+        .ilike('username', username);
+    if (excludeUserId != null) {
+      query = query.neq('id', excludeUserId);
+    }
+    final response = await query.maybeSingle();
+    return response != null;
   }
 
-  /// Comprova si un email ja existeix (retorna true si està ocupat)
+  /// Comprova si un email ja existeix en els perfils
   Future<bool> isEmailTaken(String email, {String? excludeUserId}) async {
-    final users = await getUsers();
-    return users.any(
-      (u) =>
-          u.email != null &&
-          u.email!.toLowerCase() == email.toLowerCase() &&
-          u.id != excludeUserId,
-    );
+    var query = _client.from('profiles').select('id').ilike('email', email);
+    if (excludeUserId != null) {
+      query = query.neq('id', excludeUserId);
+    }
+    final response = await query.maybeSingle();
+    return response != null;
   }
 
   /// Busca un usuari per username o email
   Future<UserModel?> findUserByUsernameOrEmail(String query) async {
-    final users = await getUsers();
     final q = query.toLowerCase().trim();
-    try {
-      return users.firstWhere(
-        (u) =>
-            u.username.toLowerCase() == q ||
-            (u.email != null && u.email!.toLowerCase() == q),
-      );
-    } catch (_) {
-      return null;
-    }
+    final response = await _client
+        .from('profiles')
+        .select()
+        .or('username.ilike.$q,email.ilike.$q')
+        .maybeSingle();
+    if (response == null) return null;
+    return UserModel.fromJson(response);
   }
 
-  Future<UserModel> createUser(
-    String name, {
-    required String username,
-    required String password,
-    String? email,
-  }) async {
-    // Validar unicitat
-    if (await isUsernameTaken(username)) {
-      throw Exception('El nom d\'usuari "$username" ja està en ús');
-    }
-    if (email != null && email.isNotEmpty && await isEmailTaken(email)) {
-      throw Exception('El correu electrònic "$email" ja està en ús');
-    }
-
-    final salt = _generateSalt();
-    final passwordHash = _hashPassword(password, salt);
-
-    final prefs = await SharedPreferences.getInstance();
-    final user = UserModel(
-      id: _uuid.v4(),
-      name: name,
-      username: username,
-      email: email,
-      passwordHash: passwordHash,
-      salt: salt,
-    );
-    final users = await getUsers();
-    users.add(user);
-    await prefs.setStringList(
-      _usersKey,
-      users.map((u) => u.toJsonString()).toList(),
-    );
-    await prefs.setString(_currentUserKey, user.id);
-    return user;
+  /// Obté un perfil per ID
+  Future<UserModel?> getProfileById(String userId) async {
+    final response = await _client
+        .from('profiles')
+        .select()
+        .eq('id', userId)
+        .maybeSingle();
+    if (response == null) return null;
+    return UserModel.fromJson(response);
   }
 
-  Future<void> loginUser(String userId, {String? password}) async {
-    final users = await getUsers();
-    final user = users.firstWhere((u) => u.id == userId);
-
-    // Si l'usuari té contrasenya, cal verificar-la
-    if (user.hasPassword) {
-      if (password == null || password.isEmpty) {
-        throw Exception('Cal introduir la contrasenya');
-      }
-      if (!verifyPassword(password, user.passwordHash!, user.salt!)) {
-        throw Exception('Contrasenya incorrecta');
-      }
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_currentUserKey, userId);
+  /// Obté tots els perfils
+  Future<List<UserModel>> getAllProfiles() async {
+    final response = await _client.from('profiles').select();
+    return (response as List).map((json) => UserModel.fromJson(json)).toList();
   }
 
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_currentUserKey);
-  }
-
-  Future<void> updateUser(UserModel user) async {
-    // Validar unicitat del username
-    if (await isUsernameTaken(user.username, excludeUserId: user.id)) {
-      throw Exception('El nom d\'usuari "${user.username}" ja està en ús');
-    }
-    if (user.email != null &&
-        user.email!.isNotEmpty &&
-        await isEmailTaken(user.email!, excludeUserId: user.id)) {
-      throw Exception('El correu electrònic "${user.email}" ja està en ús');
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    final users = await getUsers();
-    final index = users.indexWhere((u) => u.id == user.id);
-    if (index != -1) {
-      users[index] = user;
-      await prefs.setStringList(
-        _usersKey,
-        users.map((u) => u.toJsonString()).toList(),
-      );
-    }
-  }
-
-  /// Canvia la contrasenya d'un usuari
-  Future<void> changePassword(String userId, String newPassword) async {
-    final prefs = await SharedPreferences.getInstance();
-    final users = await getUsers();
-    final index = users.indexWhere((u) => u.id == userId);
-    if (index != -1) {
-      final salt = _generateSalt();
-      final hash = _hashPassword(newPassword, salt);
-      users[index].passwordHash = hash;
-      users[index].salt = salt;
-      await prefs.setStringList(
-        _usersKey,
-        users.map((u) => u.toJsonString()).toList(),
-      );
-    }
-  }
-
-  Future<void> deleteUser(String userId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final users = await getUsers();
-    users.removeWhere((u) => u.id == userId);
-    await prefs.setStringList(
-      _usersKey,
-      users.map((u) => u.toJsonString()).toList(),
-    );
-    final currentUserId = prefs.getString(_currentUserKey);
-    if (currentUserId == userId) {
-      await prefs.remove(_currentUserKey);
-    }
-    // Eliminar dades de l'usuari
-    await _clearUserData(prefs, userId);
-  }
-
-  Future<void> _clearUserData(SharedPreferences prefs, String userId) async {
-    final keys = prefs.getKeys().where((k) => k.startsWith('user_${userId}_'));
-    for (final key in keys) {
-      await prefs.remove(key);
-    }
+  /// Elimina el perfil (les dades es borren en cascada per les FK)
+  Future<void> deleteProfile(String userId) async {
+    await _client.from('profiles').delete().eq('id', userId);
+    await _client.auth.signOut();
   }
 }

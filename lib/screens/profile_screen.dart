@@ -275,22 +275,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 16),
             ],
 
-            // Canviar d'usuari
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  await authProvider.logout();
-                  if (context.mounted) {
-                    Navigator.of(context).popUntil((route) => route.isFirst);
-                  }
-                },
-                icon: const Icon(Icons.swap_horiz),
-                label: const Text('Canviar de perfil'),
-              ),
-            ),
-            const SizedBox(height: 12),
-
             // Tancar sessió
             SizedBox(
               width: double.infinity,
@@ -330,11 +314,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showSharedPantryInfo(
+  Future<void> _showSharedPantryInfo(
     BuildContext context,
     SharedPantryProvider sharedProvider,
     AuthProvider authProvider,
-  ) {
+  ) async {
+    // Pre-fetch all member profiles
+    for (final memberId in sharedProvider.members) {
+      await authProvider.getProfileById(memberId);
+    }
+    if (!context.mounted) return;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -346,7 +336,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text('Membres (${sharedProvider.members.length}):'),
             const SizedBox(height: 8),
             ...sharedProvider.members.map((memberId) {
-              final memberUser = authProvider.getUserById(memberId);
+              final memberUser = authProvider.getCachedProfile(memberId);
               final isOwner = memberId == sharedProvider.effectiveOwnerId;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 4),
@@ -449,14 +439,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     BuildContext context,
     AuthProvider authProvider,
   ) {
-    final currentPwdCtrl = TextEditingController();
     final newPwdCtrl = TextEditingController();
     final confirmPwdCtrl = TextEditingController();
-    bool obscureCurrent = true;
     bool obscureNew = true;
     bool obscureConfirm = true;
     String? error;
-    final hasPassword = authProvider.currentUser?.hasPassword ?? false;
 
     showDialog(
       context: context,
@@ -467,27 +454,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (hasPassword) ...[
-                  TextField(
-                    controller: currentPwdCtrl,
-                    obscureText: obscureCurrent,
-                    decoration: InputDecoration(
-                      labelText: 'Contrasenya actual',
-                      prefixIcon: const Icon(Icons.lock_open),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscureCurrent
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () => setDialogState(
-                          () => obscureCurrent = !obscureCurrent,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
                 TextField(
                   controller: newPwdCtrl,
                   obscureText: obscureNew,
@@ -523,7 +489,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                if (error != null) ...[
+                if (error != null) ...[  
                   const SizedBox(height: 12),
                   Text(
                     error!,
@@ -540,15 +506,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                // Validar contrasenya actual
-                if (hasPassword &&
-                    !authProvider.verifyCurrentPassword(currentPwdCtrl.text)) {
-                  setDialogState(
-                    () => error = 'La contrasenya actual no és correcta',
-                  );
-                  return;
-                }
-                // Validar nova contrasenya
                 if (newPwdCtrl.text.length < 6) {
                   setDialogState(
                     () => error =
@@ -562,7 +519,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   );
                   return;
                 }
-                await authProvider.changePassword(newPwdCtrl.text);
+                final result = await authProvider.changePassword(newPwdCtrl.text);
+                if (result != null) {
+                  setDialogState(() => error = result);
+                  return;
+                }
                 if (ctx.mounted) {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(

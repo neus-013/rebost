@@ -6,8 +6,6 @@ class UserModel {
   String username;
   String? email;
   String? avatarUrl;
-  String? passwordHash;
-  String? salt;
   DateTime createdAt;
 
   UserModel({
@@ -16,22 +14,16 @@ class UserModel {
     required this.username,
     this.email,
     this.avatarUrl,
-    this.passwordHash,
-    this.salt,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
-
-  bool get hasPassword => passwordHash != null && salt != null;
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     'username': username,
     'email': email,
-    'avatarUrl': avatarUrl,
-    'passwordHash': passwordHash,
-    'salt': salt,
-    'createdAt': createdAt.toIso8601String(),
+    'avatar_url': avatarUrl,
+    'created_at': createdAt.toIso8601String(),
   };
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
@@ -39,10 +31,10 @@ class UserModel {
     name: json['name'] as String,
     username: json['username'] as String? ?? json['name'] as String,
     email: json['email'] as String?,
-    avatarUrl: json['avatarUrl'] as String?,
-    passwordHash: json['passwordHash'] as String?,
-    salt: json['salt'] as String?,
-    createdAt: DateTime.parse(json['createdAt'] as String),
+    avatarUrl: json['avatar_url'] as String?,
+    createdAt: json['created_at'] != null
+        ? DateTime.parse(json['created_at'] as String)
+        : DateTime.now(),
   );
 
   String toJsonString() => jsonEncode(toJson());

@@ -21,18 +21,18 @@ class Invitation {
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'fromUserId': fromUserId,
-    'toUserId': toUserId,
+    'from_user_id': fromUserId,
+    'to_user_id': toUserId,
     'status': status.name,
-    'createdAt': createdAt.toIso8601String(),
+    'created_at': createdAt.toIso8601String(),
   };
 
   factory Invitation.fromJson(Map<String, dynamic> json) => Invitation(
     id: json['id'] as String,
-    fromUserId: json['fromUserId'] as String,
-    toUserId: json['toUserId'] as String,
+    fromUserId: json['from_user_id'] as String,
+    toUserId: json['to_user_id'] as String,
     status: InvitationStatus.values.byName(json['status'] as String),
-    createdAt: DateTime.parse(json['createdAt'] as String),
+    createdAt: DateTime.parse(json['created_at'] as String),
   );
 
   String toJsonString() => jsonEncode(toJson());

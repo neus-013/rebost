@@ -8,11 +8,12 @@ class AuthProvider extends ChangeNotifier {
   final NotificationService _notificationService = NotificationService();
 
   UserModel? _currentUser;
-  List<UserModel> _users = [];
   bool _isLoading = true;
 
+  /// Cache de perfils per evitar consultes repetides
+  final Map<String, UserModel> _profileCache = {};
+
   UserModel? get currentUser => _currentUser;
-  List<UserModel> get users => _users;
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _currentUser != null;
 
@@ -20,55 +21,28 @@ class AuthProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    _users = await _authService.getUsers();
     _currentUser = await _authService.getCurrentUser();
 
     _isLoading = false;
     notifyListeners();
   }
 
-  /// Comprova si un username està disponible
-  Future<bool> isUsernameTaken(String username, {String? excludeUserId}) async {
-    return _authService.isUsernameTaken(username, excludeUserId: excludeUserId);
-  }
-
-  /// Comprova si un email està disponible
-  Future<bool> isEmailTaken(String email, {String? excludeUserId}) async {
-    return _authService.isEmailTaken(email, excludeUserId: excludeUserId);
-  }
-
-  /// Busca un usuari per username o email
-  Future<UserModel?> findUserByUsernameOrEmail(String query) async {
-    return _authService.findUserByUsernameOrEmail(query);
-  }
-
-  Future<String?> createUser(
-    String name, {
+  /// Registre amb email i contrasenya
+  Future<String?> signUp({
+    required String name,
     required String username,
+    required String email,
     required String password,
-    String? email,
   }) async {
     try {
-      final user = await _authService.createUser(
-        name,
-        username: username,
-        password: password,
+      final user = await _authService.signUp(
         email: email,
+        password: password,
+        name: name,
+        username: username,
       );
       await _notificationService.addWelcomeNotification(user.id, user.name);
       _currentUser = user;
-      _users = await _authService.getUsers();
-      notifyListeners();
-      return null; // Cap error
-    } catch (e) {
-      return e.toString().replaceFirst('Exception: ', '');
-    }
-  }
-
-  Future<String?> loginUser(String userId, {String? password}) async {
-    try {
-      await _authService.loginUser(userId, password: password);
-      _currentUser = _users.firstWhere((u) => u.id == userId);
       notifyListeners();
       return null;
     } catch (e) {
@@ -76,36 +50,55 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Canvia la contrasenya de l'usuari actual
-  Future<void> changePassword(String newPassword) async {
-    if (_currentUser == null) return;
-    await _authService.changePassword(_currentUser!.id, newPassword);
-    _users = await _authService.getUsers();
-    _currentUser = _users.firstWhere((u) => u.id == _currentUser!.id);
-    notifyListeners();
+  /// Iniciar sessió amb email i contrasenya
+  Future<String?> signIn({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      _currentUser = await _authService.signIn(
+        email: email,
+        password: password,
+      );
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    }
   }
 
-  /// Verifica la contrasenya actual de l'usuari
-  bool verifyCurrentPassword(String password) {
-    if (_currentUser == null || !_currentUser!.hasPassword) return true;
-    return _authService.verifyPassword(
-      password,
-      _currentUser!.passwordHash!,
-      _currentUser!.salt!,
-    );
+  /// Comprova si un username està disponible
+  Future<bool> isUsernameTaken(String username, {String? excludeUserId}) async {
+    return _authService.isUsernameTaken(username, excludeUserId: excludeUserId);
+  }
+
+  /// Busca un usuari per username o email
+  Future<UserModel?> findUserByUsernameOrEmail(String query) async {
+    return _authService.findUserByUsernameOrEmail(query);
+  }
+
+  /// Canvia la contrasenya de l'usuari actual
+  Future<String?> changePassword(String newPassword) async {
+    try {
+      await _authService.changePassword(newPassword);
+      return null;
+    } catch (e) {
+      return e.toString().replaceFirst('Exception: ', '');
+    }
   }
 
   Future<void> logout() async {
-    await _authService.logout();
+    await _authService.signOut();
     _currentUser = null;
+    _profileCache.clear();
     notifyListeners();
   }
 
   Future<String?> updateUser(UserModel user) async {
     try {
-      await _authService.updateUser(user);
+      await _authService.updateProfile(user);
       _currentUser = user;
-      _users = await _authService.getUsers();
+      _profileCache[user.id] = user;
       notifyListeners();
       return null;
     } catch (e) {
@@ -114,20 +107,22 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> deleteUser(String userId) async {
-    await _authService.deleteUser(userId);
-    if (_currentUser?.id == userId) {
-      _currentUser = null;
-    }
-    _users = await _authService.getUsers();
+    await _authService.deleteProfile(userId);
+    _currentUser = null;
+    _profileCache.clear();
     notifyListeners();
   }
 
-  /// Obté un usuari per ID
-  UserModel? getUserById(String userId) {
-    try {
-      return _users.firstWhere((u) => u.id == userId);
-    } catch (_) {
-      return null;
-    }
+  /// Obté un perfil per ID (des de cache o Supabase)
+  Future<UserModel?> getProfileById(String userId) async {
+    if (_profileCache.containsKey(userId)) return _profileCache[userId];
+    final profile = await _authService.getProfileById(userId);
+    if (profile != null) _profileCache[userId] = profile;
+    return profile;
+  }
+
+  /// Obté un perfil per ID des de la cache (sincrón, pot retornar null)
+  UserModel? getCachedProfile(String userId) {
+    return _profileCache[userId];
   }
 }
